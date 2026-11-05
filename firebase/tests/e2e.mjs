@@ -194,7 +194,7 @@ try {
   await m.goto(W + 'empresa/'); await m.waitForSelector('#t-master tr:has-text("Mercado Beta")', { timeout: 20000 });
   await m.click('#t-master tr:has-text("Mercado Beta") [data-excluir]'); await m.click('#t-master tr:has-text("Mercado Beta") [data-excluir]');
   await m.waitForFunction(() => document.getElementById('m-geral').textContent.includes('excluída'), null, { timeout: 20000 });
-  ok('Master exclui empresa', (await m.$$('#t-master tr')).length === 2);
+  ok('Master exclui empresa', await m.waitForFunction(() => document.querySelectorAll('#t-master tr').length === 2 && !document.getElementById('t-master').textContent.includes('Mercado Beta'), null, { timeout: 20000 }).then(() => true).catch(() => false));
 } catch (e) {
   ok('Execução sem erro: ' + e.message, false);
 } finally {
