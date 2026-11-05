@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Contrapeso</title>
+<meta name="description" content="Ferramentas gratuitas para o varejo medir e negociar o impacto da reforma tributária (CBS, IBS e Imposto Seletivo).">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: marca, tese em uma frase, duas ferramentas lado a lado, cronograma da reforma como faixa, rodapé. */
+:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Contrapeso Simulador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: painel de alavancas fixo à esquerda + resultados à direita; parâmetros editáveis abaixo, em abas. */
+:root{
+  --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E9EEEC; --fg:#13201B; --muted:#5A6862; --line:#D3DCD8;
+  --accent:#AE4E17; --accent-soft:#F6E5D9;
+  --gain:#1B7C52; --gain-soft:#DCF0E5; --loss:#B4233A; --loss-soft:#F8DEE2; --warn:#9A6400; --warn-soft:#F6EBD3;
+  --k1:#2943B0; --k2:#7B95E3; --k3:#C0692A; --k4:#1B7C52; --k5:#8656BF; --k6:#A88A1E; --k7:#77817C;
+  --f-display:"Archivo","Arial",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  --k1:#93A6FF; --k2:#5269C4; --k3:#E59253; --k4:#5BC594; --k5:#B48CE8; --k6:#D6BB4E; --k7:#8E9994;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  --k1:#93A6FF; --k2:#5269C4; --k3:#E59253; --k4:#5BC594; --k5:#B48CE8; --k6:#D6BB4E; --k7:#8E9994;
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:grid;gap:48px}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none}
+.brand .mark{width:34px;height:34px;color:var(--fg)}
+.brand .word{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:22px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-stretch:115%;font-weight:800;font-size:clamp(34px,6vw,64px);line-height:1.02;letter-spacing:-.02em;margin:10px 0 0;text-wrap:balance;max-width:16ch}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:18px;color:var(--muted);max-width:60ch;margin:18px 0 0}
+.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.tools{grid-template-columns:minmax(0,1fr)}}
+.tool{display:grid;gap:10px;align-content:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;color:var(--fg);text-decoration:none;transition:border-color .15s}
+.tool:hover{border-color:var(--accent)}
+.tool:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.tool h2{font-family:var(--f-display);font-stretch:112%;font-size:24px;font-weight:700;margin:0}
+.tool p{margin:0;color:var(--muted)}
+.tool ul{margin:0;padding-left:18px;color:var(--fg);font-size:14px;display:grid;gap:4px}
+.tool .go{font-weight:600;color:var(--accent);margin-top:6px}
+.tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px solid var(--fg)}
+@media (max-width:760px){.tl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tl div{padding:12px 14px 0 0;display:grid;gap:2px}
+.tl b{font-family:var(--f-mono);font-weight:500;font-size:14px}
+.tl span{font-size:14px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding-top:16px;font-size:13px;color:var(--muted);display:grid;gap:4px}
+footer a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a>
+  <section>
+    <div class="eyebrow">Reforma tributária do consumo · varejo</div>
+    <h1>Faça a conta antes do fornecedor <em>e antes do mercado.</em></h1>
+    <p class="lede">Duas ferramentas gratuitas para medir o impacto da CBS, do IBS e do Imposto Seletivo na sua rede e levar a conta pronta para a mesa de negociação. Rodam no navegador: seus dados não saem do seu computador.</p>
+  </section>
+  <section class="tools" aria-label="Ferramentas">
+    <a class="tool" href="simulador/">
+      <div class="eyebrow">Para a diretoria</div>
+      <h2>Simulador</h2>
+      <p>Quanto a reforma muda o resultado da rede, ano a ano, de 2026 a 2033.</p>
+      <ul><li>Por estado, bandeira, canal e categoria</li><li>Alavancas: fornecedores do Simples, créditos, cadastro fiscal, preço</li><li>Split payment e benefícios de ICMS</li></ul>
+      <span class="go">Abrir o Simulador →</span>
+    </a>
+    <a class="tool" href="negociador/">
+      <div class="eyebrow">Para compras e categoria</div>
+      <h2>Negociador</h2>
+      <p>O preço que cada fornecedor deveria cobrar depois da reforma, item a item.</p>
+      <ul><li>Preço neutro, preço máximo e margem por SKU</li><li>Importa XML de NF-e, Excel, CSV, TXT, JSON e API</li><li>Memória de cálculo para enviar ao fornecedor</li></ul>
+      <span class="go">Abrir o Negociador →</span>
+    </a>
+  </section>
+  <section aria-label="Cronograma da reforma">
+    <div class="eyebrow" style="margin-bottom:10px">Cronograma (LC 214/2025)</div>
+    <div class="tl">
+      <div><b>2026</b><span>Teste: CBS 0,9% e IBS 0,1% na nota</span></div>
+      <div><b>2027</b><span>CBS plena; fim de PIS/Cofins; Imposto Seletivo</span></div>
+      <div><b>2029–2032</b><span>ICMS cai 10% ao ano; IBS sobe</span></div>
+      <div><b>2033</b><span>ICMS e ISS extintos; IBS e CBS plenos</span></div>
+    </div>
+  </section>
+  <footer>
+    <span>Contrapeso é uma ferramenta independente de estimativa. Não é parecer fiscal: valide os números com sua equipe tributária.</span>
+    <span>Código aberto: <a href="https://github.com/Marquetti-Ric/contrapeso">github.com/Marquetti-Ric/contrapeso</a></span>
+  </footer>
+</div>
+</body>
+</html>

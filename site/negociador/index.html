@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Contrapeso Negociador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: barra de controles no topo; abas Negociação / Importar / Integração / Premissas; árvore fornecedor > SKU com memória de cálculo abaixo. Identidade Contrapeso. */
+:root{
+  --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E9EEEC; --fg:#13201B; --muted:#5A6862; --line:#D3DCD8;
+  --accent:#AE4E17; --accent-soft:#F6E5D9;
+  --gain:#1B7C52; --gain-soft:#DCF0E5; --loss:#B4233A; --loss-soft:#F8DEE2; --warn:#9A6400; --warn-soft:#F6EBD3;
+  --f-display:"Archivo","Arial",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1440px;margin:0 auto;padding-inline:20px;padding-block:24px 56px;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(26px,3.2vw,34px);font-weight:700;line-height:1.1}
+h2{font-size:19px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:80ch;margin-top:6px}
+.muted{color:var(--muted)}
+.note{font-size:12px;color:var(--muted);max-width:100ch}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;align-items:flex-end;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.srcbadge{font-size:12px;color:var(--muted);text-align:right}
+.srcbadge b{color:var(--fg)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-weight:500;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabs .count{font-family:var(--f-mono);font-size:11px;background:var(--sunk);border-radius:999px;padding:1px 7px;margin-left:6px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{font:inherit;font-size:13px;font-weight:500;border:1px solid var(--accent);background:var(--accent);color:var(--surface);padding:7px 12px;border-radius:6px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.ghost:hover{background:var(--sunk)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.ctl{display:grid;gap:4px;min-width:0;max-width:100%}
+.ctl select{max-width:100%}
+.ctl label{font-size:12px;font-weight:600;color:var(--muted)}
+.ctl select,.ctl input,.field input,.field select,.field textarea{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.ctl input[type=search]{min-width:220px}
+.ctl input.narrow{width:76px;font-family:var(--f-mono)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:12px 14px;display:grid;gap:2px;align-content:start}
+.kpi .k{font-size:12px;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi .s{font-size:11px;color:var(--muted);font-family:var(--f-mono)}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
+.panel{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.drop span{max-width:100%}
+.card{grid-template-columns:minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:baseline}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);vertical-align:middle}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--sunk);position:sticky;top:0;z-index:1}
+thead th .sub{display:block;text-transform:none;letter-spacing:0;font-weight:400}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td .sub{display:block;font-size:11px;color:var(--muted);font-family:var(--f-body)}
+tr.g1 td{background:var(--sunk);font-weight:600}
+tr.g2 td:first-child{padding-left:26px}
+tr.g3 td:first-child{padding-left:42px}
+tr.g4 td:first-child{padding-left:58px}
+tr.it td:first-child{padding-left:74px;white-space:normal;min-width:240px}
+tr.it.d1 td:first-child{padding-left:26px} tr.it.d2 td:first-child{padding-left:42px} tr.it.d3 td:first-child{padding-left:58px}
+tr.it{cursor:pointer}
+tr.it:hover td{background:var(--accent-soft)}
+tr.it.sel td{background:var(--accent-soft)}
+.tog{font:inherit;background:none;border:0;color:var(--fg);cursor:pointer;padding:0;display:inline-flex;gap:6px;align-items:center;font-weight:inherit;text-align:left}
+.tog .car{display:inline-block;width:10px;font-family:var(--f-mono);color:var(--muted)}
+.cell-in{width:84px;font-family:var(--f-mono);font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--fg);text-align:right}
+.chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;font-family:var(--f-body);font-weight:500;white-space:nowrap}
+.chip.g{background:var(--gain-soft);color:var(--gain)} .chip.l{background:var(--loss-soft);color:var(--loss)} .chip.w{background:var(--warn-soft);color:var(--warn)} .chip.n{background:var(--sunk);color:var(--muted)} .chip.a{background:var(--accent-soft);color:var(--accent)}
+.arrow{color:var(--muted);padding:0 3px}
+.memo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.memo{grid-template-columns:minmax(0,1fr)}}
+.memo table td{white-space:normal}
+.memo table td:last-child{white-space:nowrap}
+.memo tr.tot td{font-weight:600;background:var(--sunk)}
+.memo .hdr{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:28px 16px;text-align:center;display:grid;gap:8px;justify-items:center;background:var(--bg)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop .big{font-family:var(--f-display);font-size:18px;font-weight:600}
+.fmt{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.field{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.field label{font-size:12px;font-weight:600}
+.field small{font-size:11px;color:var(--muted);line-height:1.35}
+.field input,.field select{background:var(--surface);font-family:var(--f-mono)}
+.log{display:grid;gap:6px;margin:0;padding:0;list-style:none;font-size:13px}
+.log li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+.log .when{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+pre.code{margin:0;font-family:var(--f-mono);font-size:12px;background:var(--sunk);border-radius:8px;padding:12px;overflow-x:auto;max-height:360px;white-space:pre}
+.map select{font:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--fg);max-width:220px}
+.map td{white-space:normal}
+.toast{font-size:12px;min-height:1em}
+.toast.ok{color:var(--gain)} .toast.err{color:var(--loss)}
+.empty{padding:28px;text-align:center;color:var(--muted);display:grid;gap:10px;justify-items:center}
+.steps{margin:0;padding-left:20px;display:grid;gap:6px;font-size:13px;max-width:90ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Identidade Contrapeso: marca de balança com contrapeso; display Archivo expandida; cobre como acento. */
+.brandbar + header.top{margin-top:20px}
+.brandbar{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none}
+.brand .mark{width:30px;height:30px;color:var(--fg);flex:none}
+.brand .word{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:20px;letter-spacing:-.01em}
+.brand.small .mark{width:20px;height:20px}.brand.small .word{font-size:14px}
+.prodnav{display:flex;gap:4px;background:var(--sunk);border-radius:999px;padding:3px}
+.prodnav a{font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 14px;border-radius:999px}
+.prodnav a[aria-current="page"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.prodnav a:hover{color:var(--fg)}
+.prodnav a:focus-visible,.brand:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-stretch:112%;letter-spacing:-.015em}
+.foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);max-width:none}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="brandbar">
+    <a class="brand" href="../"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a>
+    <nav class="prodnav" aria-label="Ferramentas"><a href="../simulador/">Simulador</a><a href="../negociador/" aria-current="page">Negociador</a></nav>
+  </div>
+  <header class="top">
+    <div>
+      <div class="eyebrow">Negociador · Compras e precificação · CBS/IBS 2027–2033</div>
+      <h1>O preço certo para cada fornecedor depois da reforma</h1>
+      <p class="lede">Preço que cada fornecedor deveria cobrar com a troca de PIS/Cofins pela CBS e do ICMS pelo IBS, quanto o custo precisa cair para manter a margem e qual preço de venda praticar. Por fornecedor, categoria, subcategoria, marca e SKU.</p>
+    </div>
+    <div class="srcbadge" id="srcbadge"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <!-- NEGOCIAÇÃO -->
+  <section id="tab-neg" role="tabpanel" class="panel">
+    <div class="controls">
+      <div class="ctl"><label for="c_year">Ano</label><select id="c_year"></select></div>
+      <div class="ctl"><label for="c_mode">Preço de venda</label>
+        <select id="c_mode">
+          <option value="preco">Manter preço de venda atual</option>
+          <option value="margem">Manter margem atual</option>
+          <option value="alvo">Margem-alvo</option>
+        </select></div>
+      <div class="ctl" id="w_alvo"><label for="c_alvo">Margem-alvo %</label><input id="c_alvo" class="narrow" type="number" step="0.5"></div>
+      <div class="ctl"><label for="c_forn">Fornecedor</label><select id="c_forn"></select></div>
+      <div class="ctl"><label for="c_q">Buscar</label><input id="c_q" type="search" placeholder="SKU, EAN, descrição, marca"></div>
+      <div class="ctl"><label for="c_uf">UF</label><select id="c_uf"></select></div>
+      <div class="row" style="margin-left:auto">
+        <button class="btn ghost" type="button" id="b_open">Abrir tudo</button>
+        <button class="btn ghost" type="button" id="b_close">Fechar tudo</button>
+        <button class="btn ghost" type="button" id="b_xls">Exportar Excel</button>
+        <button class="btn" type="button" id="b_forn">Memória para o fornecedor</button>
+      </div>
+    </div>
+    <div class="toast" id="t_neg" role="status"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="card">
+      <div class="card-head">
+        <h2>Mesa de negociação</h2>
+        <p class="note">Clique num item para ver a memória de cálculo. Na linha do fornecedor, informe o desconto pedido sobre o preço neutro (ex.: −2). No item, informe o preço negociado unitário, que tem prioridade.</p>
+      </div>
+      <div class="tbl" id="tree"></div>
+    </div>
+    <div class="card" id="memo"></div>
+  </section>
+
+  <!-- IMPORTAR -->
+  <section id="tab-imp" role="tabpanel" hidden class="panel">
+    <div class="card">
+      <div class="card-head"><h2>Importar dados</h2>
+        <div class="row">
+          <button class="btn ghost" type="button" id="b_tpl">Baixar modelo Excel</button>
+          <button class="btn ghost" type="button" id="b_sample">Carregar exemplo</button>
+          <button class="btn ghost" type="button" id="b_clear">Apagar todos os itens</button>
+        </div>
+      </div>
+      <label class="drop" id="drop" for="f_in">
+        <span class="big">Solte os arquivos aqui ou clique para escolher</span>
+        <span class="muted">Vários arquivos de uma vez. Os dados ficam só neste navegador.</span>
+        <span class="fmt"><span class="chip a">XML de NF-e</span><span class="chip a">Excel .xlsx / .xls</span><span class="chip a">CSV</span><span class="chip a">TXT delimitado</span><span class="chip a">JSON</span></span>
+      </label>
+      <input type="file" id="f_in" multiple accept=".xml,.xlsx,.xls,.csv,.txt,.json,.tsv" hidden>
+      <div class="row">
+        <span class="ctl"><label for="f_mode">Ao importar</label>
+          <select id="f_mode"><option value="merge">Mesclar com os itens atuais</option><option value="replace">Substituir todos os itens</option></select></span>
+      </div>
+      <div class="toast" id="t_imp" role="status"></div>
+      <div id="mapper"></div>
+      <ol class="steps">
+        <li><b>XML de NF-e de entrada.</b> Traz fornecedor, regime (Simples ou não), NCM, preço, ICMS, ICMS-ST, IPI, PIS/Cofins e, nas notas de 2026, CST e cClassTrib de IBS/CBS com redução de alíquota. Notas repetidas do mesmo item somam a quantidade e ficam com o preço da nota mais recente.</li>
+        <li><b>Cadastro e vendas (Excel, CSV, TXT ou JSON).</b> Completa o que a nota não tem: categoria, subcategoria, marca, volume anual, preço de venda, ICMS na venda, verbas e bonificação. A tela de mapeamento reconhece os nomes de coluna mais comuns.</li>
+        <li><b>Ordem sugerida:</b> primeiro os XMLs, depois a planilha de cadastro em modo mesclar.</li>
+      </ol>
+      <h3>Histórico de importações</h3>
+      <ul class="log" id="log"></ul>
+    </div>
+  </section>
+
+  <!-- INTEGRAÇÃO -->
+  <section id="tab-api" role="tabpanel" hidden class="panel">
+    <div class="card">
+      <h2>Buscar de uma API</h2>
+      <p class="note">Busca os itens num serviço REST que devolva JSON no formato do contrato abaixo. Funciona quando o arquivo HTML roda no ambiente da sua empresa (intranet, SharePoint, servidor web interno) e o serviço permite a origem (CORS). Dentro do Claude, a política de segurança da página bloqueia chamadas externas; nesse caso use a importação de arquivo JSON.</p>
+      <div class="fields">
+        <div class="field" style="grid-column:1/-1"><label for="a_url">URL</label><input id="a_url" type="url" placeholder="https://api.suaempresa.com.br/negociacao/itens?fornecedor=..."><small>Requisição GET. Parâmetros na própria URL.</small></div>
+        <div class="field"><label for="a_hn">Cabeçalho de autenticação</label><input id="a_hn" type="text" placeholder="Authorization"></div>
+        <div class="field"><label for="a_hv">Valor</label><input id="a_hv" type="password" placeholder="Bearer ..." autocomplete="off"><small>Não é salvo. Digite a cada sessão.</small></div>
+        <div class="field"><label for="a_path">Caminho da lista no JSON</label><input id="a_path" type="text" placeholder="items ou data.itens"><small>Vazio se a resposta já for a lista.</small></div>
+      </div>
+      <div class="row"><button class="btn" type="button" id="a_go">Buscar itens</button><span class="toast" id="t_api" role="status"></span></div>
+    </div>
+    <div class="card">
+      <h2>Incorporar no portal ou no ERP</h2>
+      <p class="note">Quando a página roda dentro de um portal (iframe) ou é aberta por outro sistema, os dados podem ser enviados sem arquivo:</p>
+      <pre class="code" id="embedcode"></pre>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Contrato de dados</h2><div class="row"><button class="btn ghost" type="button" id="b_copyjson">Copiar exemplo JSON</button><span class="toast" id="t_copy" role="status"></span></div></div>
+      <p class="note">O mesmo contrato vale para Excel, CSV, TXT, JSON e API. Valores unitários na unidade de compra. Percentuais como número (18 = 18%). Campos vazios ficam com o padrão ou com o que já foi importado do XML.</p>
+      <div class="tbl"><table id="contract"></table></div>
+      <h3>Exemplo</h3>
+      <pre class="code" id="jsonex"></pre>
+    </div>
+  </section>
+
+  <!-- PREMISSAS -->
+  <section id="tab-par" role="tabpanel" hidden class="panel">
+    <div class="card">
+      <div class="card-head"><h2>Alíquotas e regras gerais</h2><button class="btn ghost" type="button" id="b_resetP">Restaurar padrão</button></div>
+      <div class="fields" id="pfields"></div>
+      <div class="tbl"><table id="ptimeline"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Redução de IBS/CBS por cClassTrib e por NCM</h2><div class="row"><button class="btn ghost" type="button" id="b_addrule">Adicionar regra</button></div></div>
+      <p class="note">Ordem de prioridade: redução informada no item ou no XML, depois o cClassTrib, depois o prefixo de NCM mais longo. Item sem regra aparece como "classificação pendente" e é calculado com alíquota cheia. As regras de NCM abaixo são um ponto de partida e precisam ser validadas pelo time fiscal contra os Anexos I, VII, VIII e XV da LC 214/2025.</p>
+      <div class="tbl"><table id="rules"></table></div>
+    </div>
+  </section>
+  <footer class="foot"><span class="brand small"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></span><span>Ferramenta independente de estimativa sobre a reforma tributária do consumo (EC 132/2023 e LC 214/2025). Não é parecer fiscal: valide os números com sua equipe tributária antes de decidir.</span></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ================= MODELO ================= */
+// MODEL-START
+const YEARS=[2026,2027,2028,2029,2030,2031,2032,2033];
+const ICMS_F={2026:1,2027:1,2028:1,2029:.9,2030:.8,2031:.7,2032:.6,2033:0};
+const IBS_F={2026:0,2027:0,2028:0,2029:.1,2030:.2,2031:.3,2032:.4,2033:1};
+const DEFAULT_P={cbs:9.21, ibs:18.70, simpCred:4, pcVar:9.25, mAlvo:20,
+  rulesCls:[
+    {k:'000001',red:0,  d:'Tributação integral'},
+  ],
+  rulesNcm:[
+    {k:'0701',red:100,d:'Batatas (Anexo XV)'},{k:'0702',red:100,d:'Tomates (Anexo XV)'},{k:'0703',red:100,d:'Cebola, alho (Anexo XV)'},
+    {k:'0803',red:100,d:'Bananas (Anexo XV)'},{k:'0805',red:100,d:'Cítricos (Anexo XV)'},{k:'0407',red:100,d:'Ovos (Anexo XV)'},
+    {k:'0401',red:100,d:'Leite (Anexo I)'},{k:'0406.10',red:100,d:'Queijo muçarela (Anexo I)'},{k:'1006',red:100,d:'Arroz (Anexo I)'},
+    {k:'0713.33',red:100,d:'Feijão (Anexo I)'},{k:'0901',red:100,d:'Café (Anexo I)'},
+    {k:'0403',red:60,d:'Iogurtes e leites fermentados (Anexo VII)'},
+    {k:'2203',red:0,d:'Cervejas'},{k:'2202',red:0,d:'Refrigerantes e energéticos'},{k:'2201',red:0,d:'Águas'}
+  ]};
+
+function rates(y,P){
+  const cbs = y<=2026?0:(y<=2028?P.cbs-0.1:P.cbs);
+  const ibs = y<=2026?0:(y<=2028?0.1:IBS_F[y]*P.ibs);
+  return {F:ICMS_F[y], cbs, ibs};
+}
+function redOf(it,P){
+  if(it.red!==null && it.red!==undefined && it.red!=='' && isFinite(+it.red)) return {v:+it.red, src:it.redSrc||'item'};
+  const c=(it.cclass||'').trim();
+  if(c){const r=P.rulesCls.find(r=>r.k===c); if(r) return {v:+r.red, src:'cClassTrib '+c};}
+  const n=(it.ncm||'').replace(/\D/g,'');
+  let best=null;
+  for(const r of P.rulesNcm){const k=String(r.k).replace(/\D/g,''); if(k && n.startsWith(k) && (!best || k.length>best.len)) best={len:k.length,r};}
+  if(best) return {v:+best.r.red, src:'NCM '+best.r.k};
+  return {v:0, src:null};
+}
+function calc(it,y,P,ctx){
+  ctx=ctx||{};
+  const R=rates(y,P), F=R.F;
+  const rd=redOf(it,P), red=rd.v/100;
+  const t=(R.cbs+R.ibs)/100*(1-red);
+  const q=+it.qtd||0;
+  const P0=+it.preco||0, i=(+it.icmsC||0)/100, p=(+it.pcF||0)/100;
+  const ipi0=+it.ipi||0, st0=+it.stU||0, isA=(+it.isA||0)/100;
+  const st=!!it.st, simp=!!it.simples;
+  const pcTrib = it.pcV==='tributado';
+  const com=((+it.verba||0)+(+it.bonif||0))/100;
+  // HOJE
+  const icms0=i*P0;
+  const pcCred0 = pcTrib ? P.pcVar/100*(P0+ipi0-icms0) : 0;
+  const nota0=P0+ipi0+st0;
+  const credIcms0 = st?0:icms0;
+  const gross0=nota0-credIcms0-pcCred0;
+  const cost0=gross0*(1-com);
+  const recForn=P0*(1-i)*(1-p);
+  // ANO y: preço neutro (fornecedor mantém a receita líquida)
+  const iy=i*F;
+  const neutral = y<=2026 ? P0 : (simp ? P0 : recForn/(1-iy));
+  function costAt(Pn){
+    if(y<=2026){ const g=Pn+ipi0+st0-(st?0:i*Pn)-(pcTrib?P.pcVar/100*(Pn+ipi0-i*Pn):0); return {nota:Pn+ipi0+st0,isv:0,tax:0,ipi:ipi0,stv:st0,credTax:pcTrib?P.pcVar/100*(Pn+ipi0-i*Pn):0,credIcms:st?0:i*Pn,icms:i*Pn,gross:g,cost:g*(1-com)}; }
+    const isv=isA*Pn;
+    const icms=iy*Pn;
+    const tax = simp?0:t*(Pn-icms+isv);
+    const credTax = simp?Math.min(P.simpCred/100,t)*Pn:tax;
+    const stv=st0*F;
+    const credIcms= st?0:icms;
+    const nota=Pn+isv+tax+stv;
+    const g=nota-credTax-credIcms;
+    return {nota,isv,tax,ipi:0,stv,credTax,credIcms,icms,gross:g,cost:g*(1-com)};
+  }
+  const negPct = ctx.negPct;
+  let Pneg = neutral, negSrc='neutro';
+  if(it.neg!==null && it.neg!==undefined && it.neg!=='' && isFinite(+it.neg) && +it.neg>0){Pneg=+it.neg;negSrc='item'}
+  else if(negPct!==undefined && negPct!==null && negPct!=='' && isFinite(+negPct) && +negPct!==0){Pneg=neutral*(1+(+negPct)/100);negSrc='fornecedor'}
+  const cN=costAt(neutral), cG=costAt(Pneg);
+  // VENDA
+  const S0=+it.pv||0, iv=st?0:(+it.icmsV||0)/100, pcv=pcTrib?P.pcVar/100:0;
+  const N0=S0*(1-iv)*(1-pcv);
+  const m0 = N0>0?(N0-cost0)/N0:0;
+  const ivy=iv*F;
+  const tv = y<=2026?0:t;
+  const pcvy = y<=2026?pcv:0;
+  const NofS = S=> S/(1+tv*(1-ivy))*(1-ivy)*(1-pcvy);
+  const SofN = N=> N/((1-ivy)*(1-pcvy))*(1+tv*(1-ivy));
+  const mode=ctx.mode||'preco';
+  const mT = mode==='alvo' ? (+P.mAlvo||0)/100 : m0;
+  const Sy = mode==='preco' ? S0 : (mT<1 ? SofN(cG.cost/(1-mT)) : S0);
+  const Ny = NofS(Sy);
+  const my = Ny>0?(Ny-cG.cost)/Ny:0;
+  // custo máximo de compra que mantém a margem atual sem mexer no preço de venda
+  const cTarget = NofS(S0)*(1-m0);
+  const c0v=costAt(0).cost, c1v=costAt(1).cost, a=c1v-c0v;
+  const Pmax = a>0 ? (cTarget-c0v)/a : NaN;
+  return {it,y,q,red:rd.v,redSrc:rd.src,t,
+    P0,icms0,pcForn:P0*(1-i)*p,ipi0,st0,nota0,credIcms0,pcCred0,gross0,cost0,recForn,
+    neutral,Pneg,negSrc,cN,cG,Pmax,
+    S0,N0,m0,Sy,Ny,my,iv,ivy,tv,pcv,
+    dLucro:q*((Ny-cG.cost)-(N0-cost0)),
+    pending:rd.src===null};
+}
+// MODEL-END
+
+/* ================= ESTADO ================= */
+const KEY='contrapeso-negociador-v1';
+const clone=o=>JSON.parse(JSON.stringify(o));
+let ST={items:[],P:clone(DEFAULT_P),negPct:{},log:[],ui:{year:2027,mode:'preco',forn:'',q:'',uf:'',tab:'neg'},open:{}};
+try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&Array.isArray(o.items)) ST=Object.assign(ST,o); ST.P=Object.assign(clone(DEFAULT_P),ST.P||{});}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){toast('t_imp','Não foi possível salvar neste navegador (limite de armazenamento). Os dados continuam na tela até fechar.', 'err')}}
+let SEL=null;
+
+/* ================= UTIL ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=(v,d=2)=>isFinite(v)?v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const rs=(v,d=2)=>isFinite(v)?'R$ '+nf(v,d):'—';
+const sg=(v,d=1)=>isFinite(v)?((v>0.0000001?'+':'')+nf(v,d)):'—';
+const pc=(v,d=1)=>isFinite(v)?sg(v*100,d)+'%':'—';
+const pp=(v,d=1)=>isFinite(v)?nf(v*100,d)+'%':'—';
+const cls=(v,inv)=>{if(!isFinite(v)||Math.abs(v)<1e-9)return'';return (inv?v<0:v>0)?'pos':'neg'};
+function big(v){if(!isFinite(v))return'—';const a=Math.abs(v);if(a>=1e6)return 'R$ '+nf(v/1e6,1)+' mi';if(a>=1e3)return 'R$ '+nf(v/1e3,0)+' mil';return 'R$ '+nf(v,0)}
+function bigs(v){if(!isFinite(v))return'—';return (v>0?'+':v<0?'−':'')+big(Math.abs(v))}
+function toast(id,msg,kind){const el=$(id);if(!el)return;el.textContent=msg;el.className='toast '+(kind||'ok');clearTimeout(el._t);el._t=setTimeout(()=>{el.textContent=''},6000)}
+function num(v){if(v===null||v===undefined||v==='')return null;if(typeof v==='number')return v;let s=String(v).trim().replace(/[R$\s%]/g,'');if(!s)return null;
+  if(s.includes(',')&&s.includes('.')){ if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/,/g,''); }
+  else if(s.includes(',')) s=s.replace(',','.');
+  else if(/^-?\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  const n=parseFloat(s);return isFinite(n)?n:null}
+function boolish(v){if(typeof v==='boolean')return v;const s=String(v??'').trim().toLowerCase();return ['s','sim','y','yes','true','1','x'].includes(s)}
+function fornKey(it){return (it.cnpj||'').replace(/\D/g,'')||('n:'+(it.fornecedor||'Sem fornecedor'))}
+
+/* ================= CONTRATO ================= */
+const FIELDS=[
+ ['sku','texto','sim','Código do item no fornecedor ou no varejista','100234',['sku','codigo','código','cod','cprod','plu','cod_produto','codigo_produto','item']],
+ ['ean','texto','','EAN/GTIN','7890000000017',['ean','gtin','cean','codigo_barras','cod_barras']],
+ ['descricao','texto','sim','Descrição do item','Cerveja Pilsen lata 350 ml',['descricao','descrição','descricao_produto','xprod','produto','nome','desc']],
+ ['cnpj','texto','','CNPJ do fornecedor','12345678000100',['cnpj','cnpj_fornecedor','fornecedor_cnpj']],
+ ['fornecedor','texto','sim','Nome do fornecedor','Bebidas Horizonte S.A.',['fornecedor','razao_social','razão social','xnome','nome_fornecedor']],
+ ['simples','S/N','','Fornecedor optante do Simples Nacional','N',['simples','simples_nacional','optante_simples','crt']],
+ ['categoria','texto','','Categoria','Bebidas',['categoria','departamento','secao','seção']],
+ ['subcategoria','texto','','Subcategoria','Cervejas',['subcategoria','sub_categoria','familia','família','grupo']],
+ ['marca','texto','','Marca ou linha','Horizonte Core',['marca','linha','brand']],
+ ['ncm','texto','sim','NCM','22030000',['ncm']],
+ ['cclass','texto','','cClassTrib de IBS/CBS','000001',['cclasstrib','cclass','classificacao_tributaria','class_trib']],
+ ['red','número','','Redução de IBS/CBS em % (0, 60 ou 100). Se vazio, usa as regras','0',['reducao','redução','reducao_ibs_cbs','red','predaliq']],
+ ['uf','texto','','UF de destino da compra','SP',['uf','estado','uf_destino']],
+ ['preco','número','sim','Preço unitário de compra na nota, já com desconto em nota','2.94',['preco','preço','preco_de_compra','custo_compra','preco_compra','custo_unitario','vuncom','valor_unitario','preco_unitario']],
+ ['ipi','número','','IPI por unidade (R$)','0.10',['ipi','vipi','ipi_unit']],
+ ['icmsC','número','','ICMS próprio do fornecedor embutido no preço (%)','18',['icms','icms_compra','picms','aliq_icms','icms_compra_aliq']],
+ ['st','S/N','','Item sujeito a ICMS-ST','S',['st','icms_st','substituicao','substituição']],
+ ['stU','número','','ICMS-ST cobrado na nota por unidade (R$)','0.62',['st_unit','icms_st_unit','vicmsst','valor_st']],
+ ['pcF','número','','PIS+Cofins do fornecedor embutido no preço (%)','9.25',['pis_cofins','pis_cofins_fornecedor','pcf','pis_cofins_forn']],
+ ['pcV','tributado/zero','','PIS/Cofins do varejista na venda: tributado (crédito e débito de 9,25%) ou zero (monofásico, isento, alíquota zero)','zero',['pis_cofins_varejo','pcv','pis_cofins_venda']],
+ ['isA','número','','Imposto Seletivo esperado no fornecedor (% do preço)','0',['seletivo','imposto_seletivo','is']],
+ ['qtd','número','sim','Volume anual comprado, em unidades','1200000',['qtd','quantidade','qtd_anual','quantidade_anual','volume_anual_unidades','volume','volume_anual','qcom']],
+ ['pv','número','sim','Preço de venda ao consumidor','3.99',['pv','preco_de_venda','valor_venda','preco_consumidor','preco_venda','preço_venda','preco_varejo','venda']],
+ ['icmsV','número','','ICMS efetivo na venda (%). Ignorado se ST','18',['icms_venda','icmsv','icms_saida']],
+ ['verba','número','','Verba contratual (% do preço)','2',['verba','verba_contratual','desconto_contrato']],
+ ['bonif','número','','Bonificação (% do preço)','0',['bonif','bonificacao','bonificação']],
+ ['custoMedio','número','','Custo médio contábil (informativo)','2.31',['custo_medio','custo médio','cmv']],
+ ['neg','número','','Preço negociado para o ano analisado (unitário, sem IBS/CBS)','2.50',['neg','preco_negociado','preço_negociado']]
+];
+const NUMF=new Set(FIELDS.filter(f=>f[1]==='número').map(f=>f[0]));
+function normKey(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')}
+const SYN={};FIELDS.forEach(f=>{SYN[normKey(f[0])]=f[0];f[5].forEach(s=>SYN[normKey(s)]=f[0])});
+
+function cleanItem(o){
+  const it={};
+  FIELDS.forEach(([k])=>{ if(o[k]===undefined||o[k]===null||o[k]==='')return;
+    if(NUMF.has(k)){const n=num(o[k]); if(n!==null) it[k]=n;}
+    else if(k==='simples'){const s=String(o[k]).trim(); it[k]= (s==='1'||s==='2')?true:(s==='3'?false:boolish(s));}
+    else if(k==='st') it[k]=boolish(o[k]);
+    else if(k==='pcV'){const s=String(o[k]).toLowerCase(); it[k]= s.startsWith('t')?'tributado':'zero';}
+    else it[k]=String(o[k]).trim();
+  });
+  if(it.ncm) it.ncm=it.ncm.replace(/\D/g,'');
+  if(it.cnpj) it.cnpj=it.cnpj.replace(/\D/g,'');
+  if(it.red!==undefined) it.redSrc='informada';
+  return it;
+}
+function itemKey(it){ if(it.ean && it.ean!=='SEM GTIN' && it.ean.length>=8) return 'e:'+it.ean; return 'k:'+fornKey(it)+'|'+(it.sku||it.descricao||''); }
+function defaults(it){
+  return Object.assign({sku:'',ean:'',descricao:'(sem descrição)',fornecedor:'Sem fornecedor',categoria:'Sem categoria',subcategoria:'Sem subcategoria',marca:'Sem marca',uf:'SP',pcV:'zero',pcF:9.25,icmsC:0,ipi:0,stU:0,isA:0,verba:0,bonif:0,qtd:0,pv:0,icmsV:0,st:false,simples:false},it);
+}
+function mergeItems(list,mode,source){
+  if(mode==='replace'){ST.items=[];}
+  const idx=new Map(ST.items.map((it,i)=>[itemKey(it),i]));
+  let add=0,upd=0;
+  for(const raw of list){
+    const it=raw;
+    const k=itemKey(it);
+    let i=idx.get(k);
+    if(i===undefined && it.sku){ // tenta casar pelo código mesmo sem CNPJ
+      i=ST.items.findIndex(x=>x.sku===it.sku && (!it.cnpj||!x.cnpj||x.cnpj===it.cnpj) && (!it.fornecedor||x.fornecedor===it.fornecedor||!x.cnpj));
+      if(i<0)i=undefined;
+    }
+    if(i===undefined){ST.items.push(defaults(it));idx.set(k,ST.items.length-1);add++}
+    else{const cur=ST.items[i]; for(const f in it){ if(it[f]!==undefined&&it[f]!==''&&it[f]!==null) cur[f]=it[f]; } upd++}
+  }
+  ST.log.unshift({when:new Date().toLocaleString('pt-BR'),source,add,upd});
+  ST.log=ST.log.slice(0,30);
+  save();
+  return {add,upd};
+}
+
+/* ================= IMPORTADORES ================= */
+function g(el,tag){return el?el.getElementsByTagName(tag)[0]:null}
+function gt(el,tag){const e=g(el,tag);return e?e.textContent.trim():''}
+function gn(el,tag){const v=gt(el,tag);return v===''?0:(+v||0)}
+function parseNFe(text,name){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error(name+': XML inválido');
+  const inf=g(doc,'infNFe'); if(!inf) throw new Error(name+': não é uma NF-e');
+  const emit=g(inf,'emit'), dest=g(inf,'dest');
+  const crt=gt(emit,'CRT');
+  const base={cnpj:gt(emit,'CNPJ')||gt(emit,'CPF'),fornecedor:gt(emit,'xNome'),simples:(crt==='1'||crt==='2'||crt==='4'),uf:gt(g(dest,'enderDest'),'UF')||'SP'};
+  const dh=gt(g(inf,'ide'),'dhEmi')||gt(g(inf,'ide'),'dEmi');
+  const out=[];
+  for(const det of inf.getElementsByTagName('det')){
+    const pr=g(det,'prod'), im=g(det,'imposto');
+    const q=gn(pr,'qCom')||1;
+    const vProd=gn(pr,'vProd'), vDesc=gn(pr,'vDesc');
+    const icmsG=g(im,'ICMS'); const ic=icmsG?Array.from(icmsG.children)[0]:null;
+    const cst=ic?(gt(ic,'CST')||gt(ic,'CSOSN')):'';
+    let pIcms=ic?gn(ic,'pICMS'):0;
+    if(base.simples && ic && gt(ic,'pCredSN')) pIcms=gn(ic,'pCredSN');
+    const vST=ic?gn(ic,'vICMSST'):0;
+    const st = ['10','30','60','70','201','202','203','500'].includes(cst) || vST>0;
+    const ipi=gn(g(im,'IPI'),'vIPI');
+    const pis=g(im,'PIS'), cof=g(im,'COFINS');
+    const pPC=(pis?gn(pis,'pPIS'):0)+(cof?gn(cof,'pCOFINS'):0);
+    const it={sku:gt(pr,'cProd'),ean:gt(pr,'cEAN'),descricao:gt(pr,'xProd'),ncm:gt(pr,'NCM'),preco:(vProd-vDesc)/q,ipi:ipi/q,icmsC:pIcms,st,stU:['10','30','70','201','202','203'].includes(cst)?vST/q:0,pcF:pPC,qtd:q,_dh:dh,_cst:cst};
+    if(it.ean==='SEM GTIN') it.ean='';
+    it.pcV = pPC>=9 ? 'tributado' : 'zero';
+    const ib=g(im,'IBSCBS');
+    if(ib){
+      const cc=gt(ib,'cClassTrib'); if(cc) it.cclass=cc;
+      const gc=g(ib,'gCBS'); const gr=gc?g(gc,'gRed'):null;
+      if(gr && gt(gr,'pRedAliq')!==''){it.red=gn(gr,'pRedAliq');it.redSrc='XML';}
+      else if(gt(ib,'CST')==='000'){it.red=0;it.redSrc='XML';}
+    }
+    out.push(Object.assign({},base,it));
+  }
+  return out;
+}
+function aggregateNFe(list){
+  const m=new Map();
+  for(const it of list){
+    const k=itemKey(it);
+    const cur=m.get(k);
+    if(!cur){m.set(k,Object.assign({},it));continue}
+    cur.qtd+=it.qtd;
+    if((it._dh||'')>=(cur._dh||'')){const q=cur.qtd;Object.assign(cur,it);cur.qtd=q;}
+  }
+  return Array.from(m.values()).map(it=>{delete it._dh;delete it._cst;if(it.ean==='')delete it.ean;return it});
+}
+function sniffDelim(line){const c={';':0,'\t':0,'|':0,',':0};for(const ch of line)if(ch in c)c[ch]++;return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]}
+function parseDelimited(text){
+  text=text.replace(/^﻿/,'');
+  const first=text.split(/\r?\n/).find(l=>l.trim())||'';
+  const d=sniffDelim(first);
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){f+='"';i++} else q=false } else f+=ch; continue }
+    if(ch==='"'){q=true;continue}
+    if(ch===d){row.push(f);f='';continue}
+    if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n')i++; row.push(f);f=''; if(row.some(x=>x.trim()!==''))rows.push(row); row=[]; continue }
+    f+=ch;
+  }
+  row.push(f); if(row.some(x=>x.trim()!==''))rows.push(row);
+  const head=rows.shift()||[];
+  return {head:head.map(h=>h.trim()),rows:rows.map(r=>Object.fromEntries(head.map((h,i)=>[h.trim(),r[i]??''])))};
+}
+function getPath(o,path){if(!path)return o;return path.split('.').reduce((a,k)=>a==null?a:a[k],o)}
+function jsonToRows(data,path){
+  let arr=getPath(data,path);
+  if(!Array.isArray(arr)){ for(const k of ['items','itens','data','dados','produtos','rows']){ if(arr&&Array.isArray(arr[k])){arr=arr[k];break} } }
+  if(!Array.isArray(arr)) throw new Error('JSON sem lista de itens. Informe o caminho da lista.');
+  const head=Array.from(new Set(arr.flatMap(o=>Object.keys(o||{}))));
+  return {head,rows:arr};
+}
+let PENDING=null; // {name, head, rows, map}
+function autoMap(head){const m={};head.forEach(h=>{const k=SYN[normKey(h)];if(k&&!Object.values(m).includes(k))m[h]=k;});return m}
+function showMapper(name,head,rows){
+  const map=autoMap(head);
+  const allMapped=head.every(h=>map[h]) && head.length>0;
+  PENDING={name,head,rows,map};
+  if(allMapped){applyPending();return}
+  renderMapper();
+}
+function renderMapper(){
+  const el=$('mapper');
+  if(!PENDING){el.innerHTML='';return}
+  const {name,head,rows,map}=PENDING;
+  const opts=k=>`<option value="">— ignorar —</option>`+FIELDS.map(f=>`<option value="${f[0]}" ${map[k]===f[0]?'selected':''}>${f[0]} · ${esc(f[3]).slice(0,48)}</option>`).join('');
+  el.innerHTML=`<div class="card" style="background:var(--bg)"><div class="card-head"><h3>Mapear colunas de ${esc(name)}</h3><span class="muted">${rows.length} linhas</span></div>
+   <div class="tbl"><table class="map"><thead><tr><th>Coluna do arquivo</th><th>Exemplo</th><th>Campo do negociador</th></tr></thead><tbody>${head.map((h,i)=>`<tr><td><b>${esc(h)}</b></td><td class="muted">${esc(String(rows[0]?.[h]??'')).slice(0,40)}</td><td><select data-h="${i}" aria-label="Campo para ${esc(h)}">${opts(h)}</select></td></tr>`).join('')}</tbody></table></div>
+   <div class="row"><button class="btn" type="button" id="m_ok">Importar ${rows.length} linhas</button><button class="btn ghost" type="button" id="m_no">Cancelar</button></div></div>`;
+  el.querySelectorAll('select[data-h]').forEach(s=>s.onchange=()=>{const h=head[+s.dataset.h];if(s.value)PENDING.map[h]=s.value;else delete PENDING.map[h]});
+  $('m_ok').onclick=applyPending; $('m_no').onclick=()=>{PENDING=null;renderMapper()};
+}
+function applyPending(){
+  const {name,rows,map}=PENDING;
+  const list=rows.map(r=>{const o={};for(const h in map)o[map[h]]=r[h];return cleanItem(o)}).filter(it=>it.sku||it.ean||it.descricao);
+  const res=mergeItems(list,$('f_mode').value,name);
+  PENDING=null;renderMapper();
+  toast('t_imp',`${name}: ${res.add} itens novos, ${res.upd} atualizados.`);
+  renderAll();
+}
+async function handleFiles(files){
+  const xmlItems=[];let xmlCount=0;const errs=[];
+  for(const f of files){
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    try{
+      if(ext==='xml'){ xmlItems.push(...parseNFe(await f.text(),f.name)); xmlCount++; }
+      else if(ext==='xlsx'||ext==='xls'){
+        if(!window.XLSX) throw new Error('leitor de Excel não carregou; salve como CSV');
+        const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
+        const head=Object.keys(rows[0]||{});
+        showMapper(f.name,head,rows);
+      }
+      else if(ext==='json'){ const r=jsonToRows(JSON.parse(await f.text()),''); showMapper(f.name,r.head,r.rows); }
+      else if(ext==='csv'||ext==='txt'||ext==='tsv'){
+        let text=await f.text(); if(text.includes(String.fromCharCode(0xFFFD))){ const buf=await f.arrayBuffer(); text=new TextDecoder('windows-1252').decode(buf); }
+        const r=parseDelimited(text); showMapper(f.name,r.head,r.rows);
+      }
+      else errs.push(f.name+': formato não reconhecido');
+    }catch(e){errs.push(e.message||String(e))}
+  }
+  if(xmlCount){
+    const agg=aggregateNFe(xmlItems);
+    const res=mergeItems(agg,$('f_mode').value,`${xmlCount} XML de NF-e`);
+    toast('t_imp',`${xmlCount} notas lidas: ${res.add} itens novos, ${res.upd} atualizados.`+(errs.length?' Erros: '+errs.join('; '):''),errs.length?'err':'ok');
+    renderAll();
+  } else if(errs.length) toast('t_imp',errs.join('; '),'err');
+}
+
+/* ================= API / EMBED ================= */
+function loadFromObjects(arr,source,mode){
+  const {rows,head}=jsonToRows(arr,'');
+  const map=autoMap(head);
+  const list=rows.map(r=>{const o={};for(const h in map)o[map[h]]=r[h];return cleanItem(o)}).filter(it=>it.sku||it.ean||it.descricao);
+  const res=mergeItems(list,mode||'merge',source||'API');
+  renderAll();
+  return res;
+}
+window.Contrapeso={
+  carregar:(itens,modo)=>loadFromObjects(itens,'JavaScript',modo),
+  itens:()=>clone(ST.items),
+  resultado:()=>ST.items.map(it=>{const r=calc(it,ST.ui.year,ST.P,{mode:ST.ui.mode,negPct:ST.negPct[fornKey(it)]});return {sku:it.sku,ean:it.ean,fornecedor:it.fornecedor,ano:r.y,preco_hoje:r.P0,preco_neutro:r.neutral,preco_maximo:r.Pmax,preco_negociado:r.Pneg,custo_efetivo_hoje:r.cost0,custo_efetivo_ano:r.cG.cost,venda_hoje:r.S0,venda_ano:r.Sy,margem_hoje:r.m0,margem_ano:r.my,delta_lucro_ano:r.dLucro}})
+};
+window.addEventListener('message',ev=>{
+  const d=ev.data; if(!d||typeof d!=='object')return;
+  if(d.type==='contrapeso:carregar' && Array.isArray(d.itens)){
+    const res=loadFromObjects(d.itens,'Portal ('+(ev.origin||'mensagem')+')',d.modo);
+    try{ev.source&&ev.source.postMessage({type:'contrapeso:carregado',novos:res.add,atualizados:res.upd},ev.origin||'*')}catch(e){}
+  }
+});
+async function apiFetch(){
+  const url=$('a_url').value.trim(); if(!url){toast('t_api','Informe a URL.','err');return}
+  const h={}; const hn=$('a_hn').value.trim(), hv=$('a_hv').value; if(hn&&hv)h[hn]=hv;
+  ST.api={url,hn,path:$('a_path').value.trim()}; save();
+  $('a_go').disabled=true; toast('t_api','Buscando…');
+  try{
+    const r=await fetch(url,{headers:h});
+    if(!r.ok) throw new Error('o serviço respondeu '+r.status+' '+r.statusText);
+    const data=await r.json();
+    const arr=getPath(data,ST.api.path);
+    const res=loadFromObjects(arr==null?data:arr,'API '+new URL(url).host,$('f_mode').value);
+    toast('t_api',`${res.add} itens novos, ${res.upd} atualizados.`);
+  }catch(e){
+    toast('t_api','Não foi possível buscar: '+(e.message||e)+'. Se a página está aberta dentro do Claude, a chamada é bloqueada pela política de segurança; abra o arquivo HTML no ambiente da sua empresa ou importe o JSON.','err');
+  }finally{$('a_go').disabled=false}
+}
+
+/* ================= EXPORTAÇÃO ================= */
+async function saveFile(filename,data){
+  try{ if(window.claude&&claude.use){ const d=await claude.use('downloads'); if(d){ await d.save({filename,data:new Blob([data])}); return true } } }
+  catch(e){ if(e&&e.code==='declined') return false; }
+  try{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return true}catch(e){return false}
+}
+function xlsxBytes(sheets){
+  const wb=XLSX.utils.book_new();
+  for(const [name,rows] of sheets) XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),name.slice(0,31));
+  return XLSX.write(wb,{bookType:'xlsx',type:'array'});
+}
+function r4(v){return isFinite(v)?Math.round(v*10000)/10000:null}
+async function exportAll(){
+  if(!window.XLSX){toast('t_neg','O gerador de Excel não carregou.','err');return}
+  const y=ST.ui.year;
+  const rows=filtered().map(it=>{const r=calc(it,y,ST.P,{mode:ST.ui.mode,negPct:ST.negPct[fornKey(it)]});return {
+    Fornecedor:it.fornecedor,CNPJ:it.cnpj||'',Categoria:it.categoria,Subcategoria:it.subcategoria,Marca:it.marca,SKU:it.sku,EAN:it.ean||'',Descricao:it.descricao,NCM:it.ncm||'',cClassTrib:it.cclass||'',
+    'Reducao IBS/CBS %':r.red,'Origem reducao':r.redSrc||'pendente',UF:it.uf,'Volume anual':r.q,
+    'Preco hoje':r4(r.P0),[`Preco neutro ${y}`]:r4(r.neutral),[`Preco maximo p/ margem ${y}`]:r4(r.Pmax),[`Preco negociado ${y}`]:r4(r.Pneg),
+    'Custo efetivo hoje':r4(r.cost0),[`Custo efetivo ${y}`]:r4(r.cG.cost),'Venda hoje':r4(r.S0),[`Venda ${y}`]:r4(r.Sy),
+    'Margem hoje':r4(r.m0),[`Margem ${y}`]:r4(r.my),'Delta lucro bruto R$/ano':Math.round(r.dLucro)}});
+  const ok=await saveFile(`negociacao-${y}.xlsx`,xlsxBytes([['Negociacao '+y,rows]]));
+  toast('t_neg',ok?'Planilha gerada.':'Download cancelado.',ok?'ok':'err');
+}
+async function exportSupplier(){
+  if(!window.XLSX){toast('t_neg','O gerador de Excel não carregou.','err');return}
+  const fk=ST.ui.forn; if(!fk){toast('t_neg','Escolha um fornecedor no filtro para gerar a memória dele.','err');return}
+  const y=ST.ui.year;
+  const its=ST.items.filter(it=>fornKey(it)===fk);
+  const name=its[0]?.fornecedor||'fornecedor';
+  const rows=its.map(it=>{const r=calc(it,y,ST.P,{mode:'preco'});return {
+    SKU:it.sku,EAN:it.ean||'',Descricao:it.descricao,NCM:it.ncm||'',cClassTrib:it.cclass||'','Reducao IBS/CBS %':r.red,
+    'Preco unitario hoje':r4(r.P0),'ICMS embutido hoje':r4(r.icms0),'PIS/Cofins embutido hoje':r4(r.pcForn),'Receita liquida do fornecedor':r4(r.recForn),
+    [`ICMS embutido ${y}`]:r4(r.cN.icms),[`Preco unitario neutro ${y}`]:r4(r.neutral),[`IBS+CBS destacado ${y}`]:r4(r.cN.tax),[`Imposto Seletivo ${y}`]:r4(r.cN.isv),
+    'IPI hoje':r4(r.ipi0),[`IPI ${y}`]:0,'Variacao do preco unitario':r4(r.neutral/r.P0-1)}});
+  const notes=[{Item:'Premissa',Descricao:`Preço neutro: o fornecedor mantém a mesma receita líquida de hoje. PIS/Cofins deixam de existir em 2027; a CBS e o IBS são destacados por fora e geram crédito integral para o varejista; IPI zera em 2027 (exceto ZFM). Ano analisado: ${y}. CBS de referência ${nf(ST.P.cbs,2)}%, IBS ${nf(ST.P.ibs,2)}%.`},{Item:'Fonte',Descricao:'LC 214/2025 e estimativa de alíquota de referência do Comitê Gestor do IBS (Res. CGIBS 14/2026). Valores sujeitos à alíquota definitiva.'}];
+  const ok=await saveFile(`memoria-${normKey(name).slice(0,30)}-${y}.xlsx`,xlsxBytes([['Memoria de calculo',rows],['Premissas',notes]]));
+  toast('t_neg',ok?'Memória do fornecedor gerada, sem dados de margem e venda da sua empresa.':'Download cancelado.',ok?'ok':'err');
+}
+async function exportTemplate(){
+  if(!window.XLSX){toast('t_imp','O gerador de Excel não carregou.','err');return}
+  const head=Object.fromEntries(FIELDS.map(f=>[f[0],f[4]]));
+  const doc=FIELDS.map(f=>({Campo:f[0],Tipo:f[1],Obrigatorio:f[2]||'',Descricao:f[3],Exemplo:f[4],'Nomes aceitos':f[5].join(', ')}));
+  const ok=await saveFile('modelo-contrapeso.xlsx',xlsxBytes([['Itens',[head]],['Dicionario',doc]]));
+  toast('t_imp',ok?'Modelo gerado.':'Download cancelado.',ok?'ok':'err');
+}
+
+/* ================= EXEMPLO ================= */
+const SAMPLE=[
+ // Fornecedor regime normal, bebidas com ST
+ ...[
+  ['10011','Cerveja Pilsen lata 350 ml','Cervejas','Horizonte Core','22030000',2.94,0.62,1200000,3.99,0.10],
+  ['10012','Cerveja Pilsen garrafa 600 ml','Cervejas','Horizonte Core','22030000',5.10,1.05,400000,7.49,0.18],
+  ['10021','Cerveja Premium long neck 330 ml','Cervejas','Horizonte High End','22030000',4.20,0.95,350000,6.49,0.15],
+  ['10022','Cerveja Puro Malte lata 350 ml','Cervejas','Horizonte High End','22030000',3.30,0.71,500000,4.59,0.11],
+  ['10031','Refrigerante Guaraná 2 L','Refrigerantes','Serra Refrigerantes','22021000',6.20,1.30,300000,8.99,0],
+  ['10041','Energético lata 250 ml','Energéticos','Serra Refrigerantes','22029900',5.40,1.20,150000,8.49,0]
+ ].map(([sku,d,sub,m,ncm,p,st,q,pv,ipi])=>({sku,descricao:d,categoria:'Bebidas',subcategoria:sub,marca:m,ncm,preco:p,stU:st,st:true,qtd:q,pv,ipi,cnpj:'11111111000191',fornecedor:'Bebidas Horizonte S.A. (exemplo)',simples:false,icmsC:18,pcF:sub==='Cervejas'?13:9.25,pcV:'zero',icmsV:0,uf:'SP',verba:2,bonif:1,cclass:'000001'})),
+ // Hortifrúti regime normal, alíquota zero
+ ...[
+  ['20001','Banana prata kg','Frutas','Granel','08039000',3.49,180000,6.99],
+  ['20002','Tomate italiano kg','Legumes','Granel','07020000',4.20,150000,8.99],
+  ['20003','Batata lavada kg','Legumes','Granel','07019000',2.80,220000,5.99]
+ ].map(([sku,d,sub,m,ncm,p,q,pv])=>({sku,descricao:d,categoria:'Hortifrúti',subcategoria:sub,marca:m,ncm,preco:p,qtd:q,pv,cnpj:'22222222000191',fornecedor:'Hortifrúti Vale Verde Ltda. (exemplo)',simples:false,icmsC:0,pcF:0,pcV:'zero',icmsV:0,uf:'SP',st:false,stU:0,verba:0,bonif:0})),
+ // Laticínios no Simples
+ ...[
+  ['30001','Leite UHT integral 1 L','Leites','Campo Bom','04012010',4.30,400000,5.49,'zero',7],
+  ['30002','Iogurte natural 170 g','Iogurtes','Campo Bom','04032000',1.80,250000,3.49,'tributado',18],
+  ['30003','Queijo muçarela fatiado kg','Queijos','Campo Bom','04061010',32.00,30000,49.90,'zero',12]
+ ].map(([sku,d,sub,m,ncm,p,q,pv,pcv,iv])=>({sku,descricao:d,categoria:'Laticínios',subcategoria:sub,marca:m,ncm,preco:p,qtd:q,pv,cnpj:'33333333000191',fornecedor:'Laticínios Campo Bom (Simples, exemplo)',simples:true,icmsC:2.5,pcF:0,pcV:pcv,icmsV:iv,uf:'SP',st:false,stU:0,verba:0,bonif:0}))
+];
+function loadSample(){ST.items=[];ST.negPct={};mergeItems(SAMPLE.map(cleanItem).map(it=>Object.assign(it,{red:undefined,redSrc:undefined})),'replace','Exemplo (dados fictícios)');ST.items.forEach(it=>{delete it.red;delete it.redSrc});ST.sample=true;save();renderAll()}
+
+/* ================= RENDER: NEGOCIAÇÃO ================= */
+function filtered(){
+  const q=normKey(ST.ui.q);
+  return ST.items.filter(it=>(!ST.ui.forn||fornKey(it)===ST.ui.forn)&&(!ST.ui.uf||it.uf===ST.ui.uf)&&(!q||normKey([it.sku,it.ean,it.descricao,it.marca,it.subcategoria,it.categoria].join(' ')).includes(q)));
+}
+const LEVELS=['fornecedor','categoria','subcategoria','marca'];
+function agg(rs){
+  const a={q:0,buy0:0,buyN:0,buyG:0,buyMax:0,maxOk:true,c0:0,cy:0,s0:0,sy:0,n0:0,ny:0,dl:0,pend:0,n:rs.length};
+  for(const r of rs){
+    a.buy0+=r.q*r.P0;a.buyN+=r.q*r.neutral;a.buyG+=r.q*r.Pneg;
+    if(isFinite(r.Pmax))a.buyMax+=r.q*r.Pmax;else a.maxOk=false;
+    a.c0+=r.q*r.cost0;a.cy+=r.q*r.cG.cost;a.s0+=r.q*r.S0;a.sy+=r.q*r.Sy;a.n0+=r.q*r.N0;a.ny+=r.q*r.Ny;a.dl+=r.dLucro;if(r.pending)a.pend++;
+  }
+  a.m0=a.n0>0?(a.n0-a.c0)/a.n0:NaN;a.my=a.ny>0?(a.ny-a.cy)/a.ny:NaN;
+  return a;
+}
+function marginCell(m0,my){return `${pp(m0)}<span class="arrow">→</span><span class="${cls(my-m0)}">${pp(my)}</span>`}
+function renderKPIs(rs){
+  const a=agg(rs);
+  const pend=rs.filter(r=>r.pending).length;
+  $('kpis').innerHTML=`
+   <div class="kpi"><span class="k">Compras anuais hoje</span><span class="v">${big(a.buy0)}</span><span class="s">${rs.length} itens · ${new Set(rs.map(r=>fornKey(r.it))).size} fornecedores</span></div>
+   <div class="kpi"><span class="k">Preço neutro ${ST.ui.year} vs hoje</span><span class="v ${cls(a.buyN/a.buy0-1,true)}">${pc(a.buyN/a.buy0-1)}</span><span class="s">o que a carga justifica, no valor da nota</span></div>
+   <div class="kpi"><span class="k">Custo efetivo, com negociação</span><span class="v ${cls(a.cy-a.c0,true)}">${bigs(a.cy-a.c0)}</span><span class="s">por ano, após créditos e verbas</span></div>
+   <div class="kpi"><span class="k">Margem bruta</span><span class="v">${marginCell(a.m0,a.my)}</span><span class="s">sobre a receita líquida</span></div>
+   <div class="kpi"><span class="k">Lucro bruto por ano</span><span class="v ${cls(a.dl)}">${bigs(a.dl)}</span><span class="s">${pend?`<span class="chip w">${pend} com classificação pendente</span>`:'classificação completa'}</span></div>`;
+}
+function itemStatus(r){
+  if(r.pending) return '<span class="chip w">classificação pendente</span>';
+  const d=r.neutral/r.P0-1;
+  if(d<-0.003) return '<span class="chip g">pedir redução</span>';
+  if(d>0.003) return '<span class="chip l">aumento justificado</span>';
+  return '<span class="chip n">neutro</span>';
+}
+function renderTree(){
+  const y=ST.ui.year, mode=ST.ui.mode;
+  const its=filtered();
+  if(!ST.items.length){
+    $('tree').innerHTML=`<div class="empty"><b>Nenhum item carregado.</b><span>Importe XMLs de NF-e e a planilha de cadastro, ou carregue o exemplo para ver como funciona.</span><div class="row"><button class="btn" type="button" id="e_imp">Importar dados</button><button class="btn ghost" type="button" id="e_smp">Carregar exemplo</button></div></div>`;
+    $('e_imp').onclick=()=>setTab('imp');$('e_smp').onclick=loadSample;
+    $('kpis').innerHTML='';$('memo').innerHTML='<p class="muted">A memória de cálculo aparece aqui quando houver itens.</p>';return;
+  }
+  const rs=its.map(it=>calc(it,y,ST.P,{mode,negPct:ST.negPct[fornKey(it)]}));
+  renderKPIs(rs);
+  let h=`<table><thead><tr>
+   <th>Fornecedor / categoria / subcategoria / marca / item</th>
+   <th>Volume/ano<span class="sub">compras R$</span></th>
+   <th>Compra hoje<span class="sub">unitário na nota</span></th>
+   <th>Neutro ${y}<span class="sub">fornecedor mantém receita</span></th>
+   <th>Máximo ${y}<span class="sub">mantém margem e preço</span></th>
+   <th>Negociado ${y}<span class="sub">item R$ · fornecedor %</span></th>
+   <th>Custo efetivo<span class="sub">hoje → ${y}</span></th>
+   <th>Venda<span class="sub">hoje → ${y}</span></th>
+   <th>Margem<span class="sub">hoje → ${y}</span></th>
+   <th>Lucro bruto<span class="sub">Δ por ano</span></th>
+   <th style="text-align:left">Situação</th></tr></thead><tbody>`;
+  const anyOpen=Object.keys(ST.open).length>0;
+  function walk(list,depth,path){
+    if(depth>=LEVELS.length){ list.forEach(r=>h+=itemRow(r,depth)); return }
+    const key=LEVELS[depth];
+    const groups=new Map();
+    for(const r of list){const k=key==='fornecedor'?fornKey(r.it):(r.it[key]||'—');if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)}
+    const sorted=Array.from(groups.entries()).sort((a,b)=>agg(b[1]).buy0-agg(a[1]).buy0);
+    for(const [k,arr] of sorted){
+      const id=path+'/'+k;
+      const open = ST.open[id]!==undefined ? ST.open[id] : (depth===0 && sorted.length<=3 && !anyOpen);
+      const a=agg(arr);
+      const label = key==='fornecedor'?arr[0].it.fornecedor:k;
+      const negIn = key==='fornecedor' ? `<input class="cell-in" type="number" step="0.5" id="np_${esc(k)}" data-np="${esc(k)}" value="${ST.negPct[k]??''}" placeholder="0" aria-label="Desconto sobre o neutro para ${esc(label)}">%` : `<span class="${cls(a.buyG/a.buy0-1,true)}">${pc(a.buyG/a.buy0-1)}</span>`;
+      h+=`<tr class="g${depth+1}"><td><button class="tog" type="button" data-tg="${esc(id)}" aria-expanded="${open}"><span class="car">${open?'▾':'▸'}</span>${esc(label)} <span class="muted" style="font-weight:400">(${arr.length})</span></button>${key==='fornecedor'&&arr[0].it.simples?' <span class="chip w">Simples</span>':''}</td>
+        <td class="num">${big(a.buy0)}</td><td></td>
+        <td class="num ${cls(a.buyN/a.buy0-1,true)}">${pc(a.buyN/a.buy0-1)}</td>
+        <td class="num">${a.maxOk?`<span class="${cls(a.buyMax/a.buy0-1,true)}">${pc(a.buyMax/a.buy0-1)}</span>`:'—'}</td>
+        <td class="num">${negIn}</td>
+        <td class="num ${cls(a.cy/a.c0-1,true)}">${pc(a.cy/a.c0-1)}</td>
+        <td class="num ${cls(a.sy/a.s0-1,true)}">${pc(a.sy/a.s0-1)}</td>
+        <td class="num">${marginCell(a.m0,a.my)}</td>
+        <td class="num ${cls(a.dl)}">${bigs(a.dl)}</td>
+        <td style="text-align:left">${a.pend?`<span class="chip w">${a.pend} pendente${a.pend>1?'s':''}</span>`:''}</td></tr>`;
+      if(open) walk(arr,depth+1,id);
+    }
+  }
+  function itemRow(r,depth){
+    const it=r.it, idx=ST.items.indexOf(it);
+    const negV = (it.neg!==undefined&&it.neg!==null&&it.neg!=='')?it.neg:'';
+    return `<tr class="it ${SEL===idx?'sel':''}" data-i="${idx}"><td><b>${esc(it.descricao)}</b><span class="sub">${esc(it.sku)}${it.ean?' · '+esc(it.ean):''} · NCM ${esc(it.ncm||'—')} · ${r.redSrc?('redução '+nf(r.red,0)+'%'):'sem regra'}</span></td>
+     <td class="num">${nf(r.q,0)}</td>
+     <td class="num">${nf(r.P0,2)}</td>
+     <td class="num">${nf(r.neutral,2)}<span class="sub ${cls(r.neutral/r.P0-1,true)}">${pc(r.neutral/r.P0-1)}</span></td>
+     <td class="num">${nf(r.Pmax,2)}<span class="sub ${cls(r.Pmax/r.P0-1,true)}">${pc(r.Pmax/r.P0-1)}</span></td>
+     <td class="num"><input class="cell-in" type="number" step="0.01" min="0" id="ng_${idx}" data-ng="${idx}" value="${negV}" placeholder="${nf(r.Pneg,2)}" aria-label="Preço negociado de ${esc(it.descricao)}"></td>
+     <td class="num">${nf(r.cost0,2)}<span class="arrow">→</span><span class="${cls(r.cG.cost-r.cost0,true)}">${nf(r.cG.cost,2)}</span></td>
+     <td class="num">${nf(r.S0,2)}<span class="arrow">→</span><span class="${cls(r.Sy-r.S0,true)}">${nf(r.Sy,2)}</span></td>
+     <td class="num">${marginCell(r.m0,r.my)}</td>
+     <td class="num ${cls(r.dLucro)}">${bigs(r.dLucro)}</td>
+     <td style="text-align:left">${itemStatus(r)}</td></tr>`;
+  }
+  walk(rs,0,'');
+  h+='</tbody></table>';
+  const active=document.activeElement&&document.activeElement.id;
+  $('tree').innerHTML=h;
+  if(active&&$(active)){const e=$(active);e.focus();try{const v=e.value;e.value='';e.value=v}catch(_){}}
+  $('tree').querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{const id=b.dataset.tg;ST.open[id]=b.getAttribute('aria-expanded')!=='true';save();renderTree()});
+  $('tree').querySelectorAll('tr.it').forEach(tr=>tr.onclick=e=>{if(e.target.tagName==='INPUT')return;SEL=+tr.dataset.i;renderTree();renderMemo();$('memo').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'})});
+  $('tree').querySelectorAll('[data-ng]').forEach(inp=>inp.onchange=()=>{const it=ST.items[+inp.dataset.ng];const v=num(inp.value);if(v===null)delete it.neg;else it.neg=v;save();renderTree();renderMemo()});
+  $('tree').querySelectorAll('[data-np]').forEach(inp=>inp.onchange=()=>{const v=num(inp.value);if(v===null||v===0)delete ST.negPct[inp.dataset.np];else ST.negPct[inp.dataset.np]=v;save();renderTree();renderMemo()});
+  if(SEL===null||!ST.items[SEL]){SEL=ST.items.indexOf(its[0]);}
+  renderMemo();
+}
+function renderMemo(){
+  const it=ST.items[SEL]; if(!it){$('memo').innerHTML='';return}
+  const y=ST.ui.year, P=ST.P;
+  const r=calc(it,y,P,{mode:ST.ui.mode,negPct:ST.negPct[fornKey(it)]});
+  const c=r.cG, cn=r.cN;
+  const L=(a,b,c2)=>`<tr><td>${a}</td><td class="num">${b}</td></tr>`;
+  const T=(a,b)=>`<tr class="tot"><td>${a}</td><td class="num">${b}</td></tr>`;
+  const R=rates(y,P);
+  $('memo').innerHTML=`
+   <div class="hdr"><h2>Memória de cálculo · ${esc(it.descricao)}</h2><span class="muted">${esc(it.fornecedor)} · ${esc(it.sku)} · NCM ${esc(it.ncm||'—')} · cClassTrib ${esc(it.cclass||'—')} · ${it.st?'com ICMS-ST':'sem ST'} · ${it.simples?'fornecedor do Simples':'fornecedor no regime regular'}</span></div>
+   <p class="note">Redução de IBS/CBS: <b>${nf(r.red,0)}%</b> (${esc(r.redSrc||'sem regra; calculado com alíquota cheia')}). Alíquota do item em ${y}: CBS ${nf(R.cbs*(1-r.red/100),2)}% + IBS ${nf(R.ibs*(1-r.red/100),2)}% = <b>${nf(r.t*100,2)}%</b>. ICMS a ${nf(R.F*100,0)}% da alíquota atual.</p>
+   <div class="memo">
+    <div><h3>Compra</h3><div class="tbl"><table><thead><tr><th>Hoje</th><th class="num">R$/un.</th></tr></thead><tbody>
+      ${L('Preço na nota (com ICMS e PIS/Cofins embutidos)',nf(r.P0,4))}
+      ${L('(−) ICMS do fornecedor embutido',nf(r.icms0,4))}
+      ${L('(−) PIS/Cofins do fornecedor embutido',nf(r.pcForn,4))}
+      ${T('Receita líquida do fornecedor',nf(r.recForn,4))}
+      ${L('(+) IPI',nf(r.ipi0,4))}
+      ${L('(+) ICMS-ST',nf(r.st0,4))}
+      ${T('Total da nota',nf(r.nota0,4))}
+      ${L('(−) Crédito de ICMS',nf(r.credIcms0,4))}
+      ${L('(−) Crédito de PIS/Cofins',nf(r.pcCred0,4))}
+      ${L('(−) Verba e bonificação',nf(r.gross0-r.cost0,4))}
+      ${T('Custo efetivo hoje',nf(r.cost0,4))}
+    </tbody></table></div></div>
+    <div><h3>Compra em ${y}</h3><div class="tbl"><table><thead><tr><th>${r.negSrc==='neutro'?'Preço neutro':'Preço negociado ('+r.negSrc+')'}</th><th class="num">R$/un.</th></tr></thead><tbody>
+      ${L(r.y<=2026?'Sem mudança em 2026 (fase de teste)':(it.simples?'Preço na nota (Simples: sem mudança de carga própria)':'Preço na nota que mantém a receita líquida do fornecedor'),nf(r.neutral,4))}
+      ${r.negSrc!=='neutro'?L('Preço negociado usado no cálculo',nf(r.Pneg,4)):''}
+      ${L('ICMS embutido',nf(c.icms,4))}
+      ${L('(+) Imposto Seletivo',nf(c.isv,4))}
+      ${L('(+) IBS + CBS destacados (por fora, base sem ICMS)',nf(c.tax,4))}
+      ${L('(+) IPI',nf(c.ipi,4))}
+      ${L('(+) ICMS-ST',nf(c.stv,4))}
+      ${T('Total da nota',nf(c.nota,4))}
+      ${L(it.simples?'(−) Crédito de IBS/CBS limitado ao Simples':'(−) Crédito de IBS + CBS',nf(c.credTax,4))}
+      ${L('(−) Crédito de ICMS',nf(c.credIcms,4))}
+      ${L('(−) Verba e bonificação',nf(c.gross-c.cost,4))}
+      ${T('Custo efetivo',nf(c.cost,4))}
+      ${L('Preço máximo que mantém a margem com o preço de venda atual',nf(r.Pmax,4))}
+    </tbody></table></div></div>
+    <div><h3>Venda hoje</h3><div class="tbl"><table><tbody>
+      ${L('Preço ao consumidor',nf(r.S0,4))}
+      ${L('(−) ICMS na venda'+(it.st?' (já recolhido por ST)':''),nf(r.S0*r.iv,4))}
+      ${L('(−) PIS/Cofins na venda',nf(r.S0*(1-r.iv)*r.pcv,4))}
+      ${T('Receita líquida',nf(r.N0,4))}
+      ${L('(−) Custo efetivo',nf(r.cost0,4))}
+      ${T('Margem bruta',nf(r.N0-r.cost0,4)+' · '+pp(r.m0))}
+    </tbody></table></div></div>
+    <div><h3>Venda em ${y} · ${ST.ui.mode==='preco'?'preço mantido':ST.ui.mode==='margem'?'margem mantida':'margem-alvo '+nf(+P.mAlvo,1)+'%'}</h3><div class="tbl"><table><tbody>
+      ${L('Preço ao consumidor',nf(r.Sy,4))}
+      ${L('(−) IBS + CBS na venda',nf(r.Sy-r.Sy/(1+r.tv*(1-r.ivy)),4))}
+      ${L('(−) ICMS na venda',nf(r.Sy/(1+r.tv*(1-r.ivy))*r.ivy,4))}
+      ${T('Receita líquida',nf(r.Ny,4))}
+      ${L('(−) Custo efetivo',nf(c.cost,4))}
+      ${T('Margem bruta',nf(r.Ny-c.cost,4)+' · '+pp(r.my))}
+      ${L('Variação do lucro bruto no volume anual',bigs(r.dLucro))}
+    </tbody></table></div></div>
+   </div>
+   <p class="note">Preço neutro: receita líquida do fornecedor ÷ (1 − ICMS do ano). Em 2027 saem PIS/Cofins e IPI e entram CBS e IBS por fora, com base sem ICMS, conforme a transição da LC 214/2025. ICMS-ST reduzido na mesma proporção do ICMS. Modelo de decisão comercial: valide com o fiscal antes de formalizar contrato.</p>`;
+}
+
+/* ================= RENDER: IMPORTAR / INTEGRAÇÃO / PREMISSAS ================= */
+function renderLog(){
+  $('log').innerHTML=ST.log.length?ST.log.map(l=>`<li><span class="when">${esc(l.when)}</span><b>${esc(l.source)}</b><span class="muted">${l.add} novos · ${l.upd} atualizados</span></li>`).join(''):'<li class="muted">Nenhuma importação ainda.</li>';
+}
+function renderContract(){
+  $('contract').innerHTML=`<thead><tr><th>Campo</th><th>Tipo</th><th>Obrig.</th><th style="text-align:left">Descrição</th><th style="text-align:left">Exemplo</th></tr></thead><tbody>${FIELDS.map(f=>`<tr><td class="mono"><b>${f[0]}</b></td><td style="text-align:left">${f[1]}</td><td style="text-align:center">${f[2]?'sim':''}</td><td style="text-align:left;white-space:normal;min-width:260px">${esc(f[3])}</td><td class="mono" style="text-align:left">${esc(f[4])}</td></tr>`).join('')}</tbody>`;
+  const ex={items:[Object.fromEntries(FIELDS.map(f=>[f[0],NUMF.has(f[0])?+f[4]:(f[0]==='simples'||f[0]==='st'?f[4]==='S':f[4])]))]};
+  $('jsonex').textContent=JSON.stringify(ex,null,2);
+  $('embedcode').textContent=
+`// 1) Portal com a página em iframe
+iframe.contentWindow.postMessage({
+  type: 'contrapeso:carregar',
+  modo: 'merge',            // ou 'replace'
+  itens: [ { sku: '10011', fornecedor: '...', preco: 2.94, ... } ]
+}, '*');
+// resposta: { type: 'contrapeso:carregado', novos, atualizados }
+
+// 2) Script na mesma página
+Contrapeso.carregar(itens, 'merge');
+Contrapeso.resultado();   // devolve o cálculo do ano selecionado por item
+
+// 3) Serviço REST sugerido para o time de integração
+GET /negociacao/itens?fornecedor={cnpj}&uf={uf}
+200 OK  { "items": [ ...campos do contrato... ] }`;
+}
+const PF=[['cbs','CBS de referência (%)','Estimativa CGIBS jul/2026: 9,21. Em 2027–2028 cobrada com 0,1 p.p. a menos.','0.01'],
+ ['ibs','IBS de referência (%)','Estimativa CGIBS: 18,70. Em 2027–2028, 0,1% de teste; de 2029 a 2032, 10% a 40%.','0.01'],
+ ['simpCred','Crédito máximo em compra do Simples (%)','IBS/CBS pagos dentro do DAS que o varejista pode creditar.','0.1'],
+ ['pcVar','PIS/Cofins do varejo hoje (%)','Regime não cumulativo: 9,25.','0.01'],
+ ['mAlvo','Margem-alvo padrão (%)','Usada no modo "Margem-alvo".','0.5']];
+function renderParams(){
+  $('pfields').innerHTML=PF.map(([k,l,h,s])=>`<div class="field"><label for="pp_${k}">${l}</label><input id="pp_${k}" type="number" step="${s}" data-pp="${k}" value="${ST.P[k]}"><small>${h}</small></div>`).join('');
+  $('pfields').querySelectorAll('[data-pp]').forEach(i=>i.onchange=()=>{const v=num(i.value);if(v!==null){ST.P[i.dataset.pp]=v;save();renderAll()}});
+  $('ptimeline').innerHTML=`<thead><tr><th>Ano</th>${YEARS.map(y=>`<th>${y}</th>`).join('')}</tr></thead><tbody>
+   <tr><td>CBS</td>${YEARS.map(y=>`<td class="num">${nf(rates(y,ST.P).cbs,2)}%</td>`).join('')}</tr>
+   <tr><td>IBS</td>${YEARS.map(y=>`<td class="num">${nf(rates(y,ST.P).ibs,2)}%</td>`).join('')}</tr>
+   <tr><td>ICMS (fração da alíquota atual)</td>${YEARS.map(y=>`<td class="num">${nf(ICMS_F[y]*100,0)}%</td>`).join('')}</tr>
+   <tr><td>PIS/Cofins e IPI</td>${YEARS.map(y=>`<td class="num">${y<=2026?'sim':'extintos'}</td>`).join('')}</tr></tbody>`;
+  const rows=[...ST.P.rulesCls.map((r,i)=>({...r,t:'cls',i})),...ST.P.rulesNcm.map((r,i)=>({...r,t:'ncm',i}))];
+  $('rules').innerHTML=`<thead><tr><th>Tipo</th><th style="text-align:left">Código</th><th>Redução %</th><th style="text-align:left">Descrição</th><th>Itens</th><th></th></tr></thead><tbody>${rows.map(r=>{
+    const n=ST.items.filter(it=>{const x=redOf(it,ST.P);return x.src&&x.src.endsWith(' '+r.k)}).length;
+    return `<tr><td><select data-rt="${r.t}:${r.i}" aria-label="Tipo da regra"><option value="cls" ${r.t==='cls'?'selected':''}>cClassTrib</option><option value="ncm" ${r.t==='ncm'?'selected':''}>NCM (prefixo)</option></select></td>
+     <td style="text-align:left"><input class="cell-in" style="width:110px;text-align:left" data-rk="${r.t}:${r.i}" value="${esc(r.k)}" aria-label="Código"></td>
+     <td><input class="cell-in" style="width:64px" type="number" step="10" min="0" max="100" data-rr="${r.t}:${r.i}" value="${r.red}" aria-label="Redução"></td>
+     <td style="text-align:left"><input class="cell-in" style="width:280px;text-align:left" data-rd="${r.t}:${r.i}" value="${esc(r.d||'')}" aria-label="Descrição"></td>
+     <td class="num">${n}</td><td><button class="btn ghost" type="button" data-rx="${r.t}:${r.i}">Remover</button></td></tr>`}).join('')}</tbody>`;
+  const arr=t=>t==='cls'?ST.P.rulesCls:ST.P.rulesNcm;
+  const ref=s=>{const [t,i]=s.split(':');return {t,i:+i,list:arr(t)}};
+  $('rules').querySelectorAll('[data-rk]').forEach(e=>e.onchange=()=>{const r=ref(e.dataset.rk);r.list[r.i].k=e.value.trim();save();renderAll()});
+  $('rules').querySelectorAll('[data-rr]').forEach(e=>e.onchange=()=>{const r=ref(e.dataset.rr);const v=num(e.value);if(v!==null){r.list[r.i].red=Math.max(0,Math.min(100,v));save();renderAll()}});
+  $('rules').querySelectorAll('[data-rd]').forEach(e=>e.onchange=()=>{const r=ref(e.dataset.rd);r.list[r.i].d=e.value;save()});
+  $('rules').querySelectorAll('[data-rt]').forEach(e=>e.onchange=()=>{const r=ref(e.dataset.rt);const [x]=r.list.splice(r.i,1);arr(e.value).push(x);save();renderAll()});
+  $('rules').querySelectorAll('[data-rx]').forEach(e=>e.onclick=()=>{const r=ref(e.dataset.rx);r.list.splice(r.i,1);save();renderAll()});
+}
+
+/* ================= CONTROLES ================= */
+const TABS=[['neg','Negociação'],['imp','Importar'],['api','Integração e API'],['par','Premissas']];
+function setTab(t){ST.ui.tab=t;save();renderTabs()}
+function renderTabs(){
+  $('tabs').innerHTML=TABS.map(([k,n])=>`<button role="tab" type="button" aria-selected="${ST.ui.tab===k}" data-tab="${k}">${n}${k==='neg'?`<span class="count">${ST.items.length}</span>`:''}</button>`).join('');
+  $('tabs').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+  for(const [k] of TABS){const el=$('tab-'+k);el.hidden=ST.ui.tab!==k;}
+}
+function renderControls(){
+  $('c_year').innerHTML=YEARS.filter(y=>y>=2027).map(y=>`<option ${y===ST.ui.year?'selected':''}>${y}</option>`).join('');
+  $('c_mode').value=ST.ui.mode; $('c_alvo').value=ST.P.mAlvo; $('w_alvo').hidden=ST.ui.mode!=='alvo';
+  const fs=new Map(); ST.items.forEach(it=>fs.set(fornKey(it),it.fornecedor));
+  $('c_forn').innerHTML=`<option value="">Todos</option>`+Array.from(fs.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([k,n])=>`<option value="${esc(k)}" ${ST.ui.forn===k?'selected':''}>${esc(n)}</option>`).join('');
+  if(ST.ui.forn&&!fs.has(ST.ui.forn)){ST.ui.forn='';}
+  const ufs=Array.from(new Set(ST.items.map(it=>it.uf).filter(Boolean))).sort();
+  $('c_uf').innerHTML=`<option value="">Todas</option>`+ufs.map(u=>`<option ${ST.ui.uf===u?'selected':''}>${esc(u)}</option>`).join('');
+  if($('c_q').value!==ST.ui.q) $('c_q').value=ST.ui.q;
+  $('srcbadge').innerHTML=ST.items.length?`<b>${ST.items.length} itens</b> · ${fs.size} fornecedores${ST.sample?'<br><span class="chip w">dados de exemplo, fictícios</span>':''}`:'Sem dados carregados';
+}
+$('c_year').onchange=e=>{ST.ui.year=+e.target.value;save();renderAll()};
+$('c_mode').onchange=e=>{ST.ui.mode=e.target.value;save();renderAll()};
+$('c_alvo').onchange=e=>{const v=num(e.target.value);if(v!==null){ST.P.mAlvo=v;save();renderAll()}};
+$('c_forn').onchange=e=>{ST.ui.forn=e.target.value;save();renderAll()};
+$('c_uf').onchange=e=>{ST.ui.uf=e.target.value;save();renderAll()};
+let qT;$('c_q').oninput=e=>{clearTimeout(qT);qT=setTimeout(()=>{ST.ui.q=e.target.value;save();renderTree()},200)};
+$('b_open').onclick=()=>{const rs=filtered();ST.open={};const mark=(list,d,p)=>{if(d>=LEVELS.length)return;const k=LEVELS[d];const g=new Map();list.forEach(it=>{const x=k==='fornecedor'?fornKey(it):(it[k]||'—');if(!g.has(x))g.set(x,[]);g.get(x).push(it)});for(const [x,a] of g){ST.open[p+'/'+x]=true;mark(a,d+1,p+'/'+x)}};mark(rs,0,'');save();renderTree()};
+$('b_close').onclick=()=>{ST.open={'__closed':true};save();renderTree()};
+$('b_xls').onclick=exportAll; $('b_forn').onclick=exportSupplier;
+$('b_tpl').onclick=exportTemplate; $('b_sample').onclick=()=>{loadSample();setTab('neg')};
+let clearArm=false;
+$('b_clear').onclick=()=>{ if(!clearArm){clearArm=true;$('b_clear').textContent='Confirmar: apagar tudo';setTimeout(()=>{clearArm=false;$('b_clear').textContent='Apagar todos os itens'},4000);return}
+  clearArm=false;$('b_clear').textContent='Apagar todos os itens';ST.items=[];ST.negPct={};ST.open={};ST.sample=false;ST.log.unshift({when:new Date().toLocaleString('pt-BR'),source:'Itens apagados',add:0,upd:0});save();renderAll();toast('t_imp','Itens apagados.')};
+$('b_resetP').onclick=()=>{ST.P=clone(DEFAULT_P);save();renderAll()};
+$('b_addrule').onclick=()=>{ST.P.rulesNcm.unshift({k:'',red:0,d:''});save();renderParams()};
+$('a_go').onclick=apiFetch;
+$('b_copyjson').onclick=()=>{const t=$('jsonex').textContent;const ok=()=>toast('t_copy','Copiado.');try{navigator.clipboard.writeText(t).then(ok).catch(sel)}catch(e){sel()}function sel(){const r=document.createRange();r.selectNodeContents($('jsonex'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('t_copy','Texto selecionado: use Ctrl+C.')}};
+const drop=$('drop'), fin=$('f_in');
+fin.onchange=()=>{handleFiles(Array.from(fin.files));fin.value=''};
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>handleFiles(Array.from(e.dataTransfer.files||[])));
+if(ST.api){$('a_url').value=ST.api.url||'';$('a_hn').value=ST.api.hn||'';$('a_path').value=ST.api.path||''}
+
+function renderAll(){renderTabs();renderControls();renderTree();renderLog();renderParams()}
+if(!ST.items.length && !ST.log.length) loadSample();
+renderContract();renderAll();
+</script>
+
+</body>
+</html>

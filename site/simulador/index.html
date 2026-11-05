@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Contrapeso Simulador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: painel de alavancas fixo à esquerda + resultados à direita; parâmetros editáveis abaixo, em abas. */
+:root{
+  --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E9EEEC; --fg:#13201B; --muted:#5A6862; --line:#D3DCD8;
+  --accent:#AE4E17; --accent-soft:#F6E5D9;
+  --gain:#1B7C52; --gain-soft:#DCF0E5; --loss:#B4233A; --loss-soft:#F8DEE2; --warn:#9A6400; --warn-soft:#F6EBD3;
+  --k1:#2943B0; --k2:#7B95E3; --k3:#C0692A; --k4:#1B7C52; --k5:#8656BF; --k6:#A88A1E; --k7:#77817C;
+  --f-display:"Archivo","Arial",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  --k1:#93A6FF; --k2:#5269C4; --k3:#E59253; --k4:#5BC594; --k5:#B48CE8; --k6:#D6BB4E; --k7:#8E9994;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#151D1A; --sunk:#1C2622; --fg:#E4EBE8; --muted:#93A29C; --line:#2A3631;
+  --accent:#F0955E; --accent-soft:#3B2416;
+  --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
+  --k1:#93A6FF; --k2:#5269C4; --k3:#E59253; --k4:#5BC594; --k5:#B48CE8; --k6:#D6BB4E; --k7:#8E9994;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:24px 56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:.005em}
+h1{font-size:clamp(26px,3.4vw,36px);font-weight:700;line-height:1.1}
+h2{font-size:20px;font-weight:600}
+h3{font-size:15px;font-weight:600}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:72ch;margin:8px 0 0}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.years{display:flex;flex-wrap:wrap;gap:4px}
+.years button{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:6px 10px;border-radius:6px;cursor:pointer}
+.years button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.years button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.phase{font-size:12px;color:var(--muted);margin-top:6px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+@media (max-width:960px){.layout{grid-template-columns:minmax(0,1fr)}}
+aside.levers{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:18px}
+@media (max-width:960px){aside.levers{position:static}}
+.lever{display:grid;gap:6px}
+.lever .row{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.lever label{font-weight:600;font-size:13px}
+.lever .val{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+.lever .hint{font-size:12px;color:var(--muted);line-height:1.4}
+.lever .basev{font-size:11px;color:var(--muted);font-family:var(--f-mono)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+button.ghost{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--fg);padding:6px 10px;border-radius:6px;cursor:pointer}
+button.ghost:hover{background:var(--sunk)}
+main{display:grid;gap:24px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:14px 16px;display:grid;gap:4px;align-content:start}
+.kpi .k{font-size:12px;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .s{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;align-items:baseline}
+.card-head p{margin:0;color:var(--muted);font-size:13px;max-width:70ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.chartbox{overflow-x:auto}
+.chartbox svg{display:block;width:100%;min-width:560px;height:auto}
+svg text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+tbody tr:last-child td{border-bottom:0}
+tfoot td{font-weight:600;background:var(--sunk);border-bottom:0}
+td .sub{display:block;font-size:11px;color:var(--muted);font-family:var(--f-body)}
+td.num,th.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;font-family:var(--f-body)}
+.chip.g{background:var(--gain-soft);color:var(--gain)} .chip.l{background:var(--loss-soft);color:var(--loss)} .chip.w{background:var(--warn-soft);color:var(--warn)} .chip.n{background:var(--sunk);color:var(--muted)}
+.bar{display:inline-block;height:6px;border-radius:3px;vertical-align:middle;margin-left:6px}
+.insights{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.insights li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-radius:8px}
+.insights .rank{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px}
+.insights b{display:block;font-family:var(--f-display);font-size:15px;font-weight:600}
+.insights p{margin:2px 0 0;color:var(--muted);font-size:13px;max-width:72ch}
+.insights .amt{font-family:var(--f-mono);font-size:14px;white-space:nowrap;padding-top:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:13px;font-weight:500;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.ptable input{width:76px;font-family:var(--f-mono);font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--fg);text-align:right}
+.ptable td{padding:5px 8px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.pfield{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.pfield label{font-size:12px;font-weight:600}
+.pfield small{font-size:11px;color:var(--muted);line-height:1.35}
+.pfield input,.pfield select{font-family:var(--f-mono);font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);width:100%}
+.note{font-size:12px;color:var(--muted);margin:0;max-width:90ch}
+.warnline{font-size:12px;color:var(--warn)}
+.timeline{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;font-size:11px}
+@media (max-width:640px){.timeline{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.timeline div{background:var(--sunk);border-radius:6px;padding:8px;display:grid;gap:2px}
+.timeline div.on{outline:2px solid var(--accent)}
+.timeline .y{font-family:var(--f-mono);font-weight:500;color:var(--fg)}
+.timeline .t{color:var(--muted);line-height:1.35}
+.sources{font-size:12px;color:var(--muted);display:grid;gap:4px;margin:0;padding-left:18px}
+.sources a{color:var(--accent)}
+.toast{font-size:12px;color:var(--gain);min-height:1em}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Identidade Contrapeso: marca de balança com contrapeso; display Archivo expandida; cobre como acento. */
+.brandbar + header.top{margin-top:20px}
+.brandbar{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none}
+.brand .mark{width:30px;height:30px;color:var(--fg);flex:none}
+.brand .word{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:20px;letter-spacing:-.01em}
+.brand.small .mark{width:20px;height:20px}.brand.small .word{font-size:14px}
+.prodnav{display:flex;gap:4px;background:var(--sunk);border-radius:999px;padding:3px}
+.prodnav a{font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 14px;border-radius:999px}
+.prodnav a[aria-current="page"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.prodnav a:hover{color:var(--fg)}
+.prodnav a:focus-visible,.brand:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-stretch:112%;letter-spacing:-.015em}
+.foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);max-width:none}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="brandbar">
+    <a class="brand" href="../"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a>
+    <nav class="prodnav" aria-label="Ferramentas"><a href="../simulador/" aria-current="page">Simulador</a><a href="../negociador/">Negociador</a></nav>
+  </div>
+  <header class="top">
+    <div>
+      <div class="eyebrow">Simulador · Reforma tributária do consumo · LC 214/2025</div>
+      <h1>Quanto a reforma muda o resultado da sua rede</h1>
+      <p class="lede">Impacto do IBS, da CBS e do Imposto Seletivo sobre o resultado de uma rede de supermercados por estado, bandeira, canal e categoria, com as alavancas de decisão para reduzir o impacto. Valores em R$ milhões por ano, a preços de hoje. Os valores iniciais são de uma rede multiformato de exemplo; troque pelos seus em Premissas.</p>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:6px">Ano analisado</div>
+      <div class="years" id="years" role="group" aria-label="Ano analisado"></div>
+      <div class="phase" id="phase"></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="levers" aria-label="Alavancas de decisão">
+      <div>
+        <h2>Plano de ação</h2>
+        <p class="note" style="margin-top:4px">Ajuste as alavancas. O cenário base mantém a operação como está hoje; o plano aplica estes valores.</p>
+      </div>
+      <div class="lever">
+        <div class="row"><label for="L_migr">Fornecedores do Simples migrados</label><span class="val" id="V_migr"></span></div>
+        <input type="range" id="L_migr" min="0" max="100" step="5">
+        <div class="hint">Parte das compras de optantes do Simples que passa a vir com IBS/CBS pelo regime regular (crédito integral) ou com preço renegociado.</div>
+        <div class="basev">base: 0%</div>
+      </div>
+      <div class="lever">
+        <div class="row"><label for="L_capture">Captura de créditos em despesas</label><span class="val" id="V_capture"></span></div>
+        <input type="range" id="L_capture" min="0" max="100" step="1">
+        <div class="hint">Energia, serviços, frete, plataformas e TI passam a gerar crédito. Depende de ERP, cadastro de fornecedores e conciliação com a apuração assistida.</div>
+        <div class="basev">base: 75%</div>
+      </div>
+      <div class="lever">
+        <div class="row"><label for="L_mis">Erro de classificação fiscal</label><span class="val" id="V_mis"></span></div>
+        <input type="range" id="L_mis" min="0" max="10" step="0.5">
+        <div class="hint">Vendas de itens com alíquota zero ou reduzida (Anexos I, VII, VIII e XV) tributadas pela alíquota cheia por NCM ou cClassTrib errado.</div>
+        <div class="basev">base: 3%</div>
+      </div>
+      <div class="lever">
+        <div class="row"><label for="L_retain">Retenção das quedas de preço</label><span class="val" id="V_retain"></span></div>
+        <input type="range" id="L_retain" min="0" max="100" step="5">
+        <div class="hint">Quanto da redução de carga a rede mantém na margem em vez de baixar o preço. Considera a perda de volume pela elasticidade.</div>
+        <div class="basev">base: 0%</div>
+      </div>
+      <div class="lever">
+        <div class="row"><label for="L_passUp">Repasse dos aumentos de preço</label><span class="val" id="V_passUp"></span></div>
+        <input type="range" id="L_passUp" min="0" max="100" step="5">
+        <div class="hint">Quanto dos aumentos (Imposto Seletivo em bebidas alcoólicas, por exemplo) vai para a gôndola.</div>
+        <div class="basev">base: 100%</div>
+      </div>
+      <div class="btnrow">
+        <button class="ghost" id="btnResetPlan" type="button">Voltar ao plano sugerido</button>
+        <button class="ghost" id="btnZeroPlan" type="button">Igualar ao base</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="kpis" id="kpis"></div>
+
+      <section class="card" aria-labelledby="h-time">
+        <div class="card-head">
+          <h2 id="h-time">Impacto ano a ano no EBITDA</h2>
+          <p>Barras: componentes do plano. Ponto: resultado líquido do plano. Linha tracejada: cenário base, sem ações.</p>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="chartbox" id="chart"></div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-act">
+        <div class="card-head">
+          <h2 id="h-act">O que fazer, em ordem de impacto</h2>
+          <p id="actSub"></p>
+        </div>
+        <ul class="insights" id="insights"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="h-uf">
+        <div class="card-head">
+          <h2 id="h-uf">Por estado</h2>
+          <div class="btnrow"><button class="ghost" id="btnCopy" type="button">Copiar tabela para Excel</button><span class="toast" id="toast" role="status"></span></div>
+        </div>
+        <div class="tbl"><table id="tUF"></table></div>
+        <p class="note">No regime pleno o IBS é cobrado no destino, então a carga deixa de depender de onde fica o CD. A diferença entre estados passa a vir da carga atual de ICMS, do mix local, de benefícios fiscais e da alíquota de IBS que cada estado fixar.</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-ban">
+        <div class="card-head"><h2 id="h-ban">Por bandeira e canal</h2></div>
+        <div class="tbl"><table id="tBan"></table></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-cat">
+        <div class="card-head">
+          <h2 id="h-cat">Por categoria</h2>
+          <p>Carga atual e nova em % do preço ao consumidor, média ponderada dos estados.</p>
+        </div>
+        <div class="tbl"><table id="tCat"></table></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-par">
+        <div class="card-head">
+          <h2 id="h-par">Premissas</h2>
+          <div class="btnrow"><button class="ghost" id="btnReset" type="button">Restaurar valores-padrão</button></div>
+        </div>
+        <p class="note">Os valores iniciais combinam dados públicos de alíquotas (alíquotas de 2026, estimativa do Comitê Gestor). Divisão de receita por estado, mix de categorias, perfil de fornecedores e despesas são estimativas para substituir pelos números internos. As alterações ficam salvas neste navegador.</p>
+        <div class="tabs" role="tablist" id="ptabs"></div>
+        <div id="ppanel"></div>
+      </section>
+
+      <section class="card" aria-labelledby="h-src">
+        <h2 id="h-src">Como o cálculo funciona</h2>
+        <p class="note">Para cada combinação de estado, bandeira, canal e categoria, a receita bruta atual é decomposta em ICMS, PIS/Cofins e receita líquida. O preço novo mantém a receita líquida da rede (ajustada pela queda de custo vinda da indústria e pelo Imposto Seletivo) e aplica as alíquotas de cada ano: teste em 2026, CBS no lugar de PIS/Cofins em 2027, ICMS a 90/80/70/60% de 2029 a 2032 e IBS pleno em 2033. Sobre isso entram os efeitos que mudam o resultado: o que não é repassado ao preço, a variação de volume, o crédito perdido em compras do Simples e de produtor rural, os créditos novos em despesas, o custo de classificação errada, o capital de giro perdido no split payment e o fim de benefícios de ICMS. É um modelo de decisão, não de apuração: valide os números com a área fiscal antes de usar em orçamento.</p>
+        <ul class="sources">
+          <li>Alíquota de referência estimada em 27,91% (IBS 18,70 + CBS 9,21): Resolução CGIBS nº 14/2026 — <a href="https://www.contabeis.com.br/noticias/78568/cgibs-estima-aliquota-de-referencia-de-27-91-para-ibs-e-cbs/">Contábeis</a></li>
+          <li>Cronograma de transição 2026–2033 e anexos de alíquota zero e reduzida — <a href="https://buscadorncm.com.br/reforma/cronograma">LC 214/2025 consolidada (resumo)</a>, <a href="https://www.contabeis.com.br/noticias/76412/reforma-zera-ibs-e-cbs-da-cesta-basica/">cesta básica e Anexo VII</a></li>
+          <li>Crédito limitado em compras do Simples e crédito presumido de produtor rural — <a href="https://taxup.com.br/reforma-tributaria-credito-compras-fornecedor/">TaxUp</a>, <a href="https://www.legjur.com/legislacao/art/lec_00002142025-168">art. 168 LC 214</a></li>
+          <li>Alíquotas modais de ICMS 2026 — <a href="https://simtax.com.br/tabela-icms-2026-aliquotas-de-todos-estados-atualizada/">Simtax</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+  <footer class="foot"><span class="brand small"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></span><span>Ferramenta independente de estimativa sobre a reforma tributária do consumo (EC 132/2023 e LC 214/2025). Não é parecer fiscal: valide os números com sua equipe tributária antes de decidir.</span></footer>
+</div>
+
+<script>
+// MODEL-START
+const YEARS=[2026,2027,2028,2029,2030,2031,2032,2033];
+const ICMS_F={2026:1,2027:1,2028:1,2029:.9,2030:.8,2031:.7,2032:.6,2033:0};
+const IBS_F={2026:0,2027:0,2028:0,2029:.1,2030:.2,2031:.3,2032:.4,2033:1};
+const BKEYS=['PA','EM','PX'];
+const CHS=['loja','ecom'];
+const COMPS=[
+  {k:'preco',n:'Preço e margem',c:'--k1'},
+  {k:'volume',n:'Volume',c:'--k2'},
+  {k:'fornec',n:'Crédito de fornecedores',c:'--k3'},
+  {k:'despesas',n:'Créditos em despesas',c:'--k4'},
+  {k:'classif',n:'Classificação fiscal',c:'--k5'},
+  {k:'split',n:'Split payment',c:'--k6'},
+  {k:'incent',n:'Benefícios de ICMS',c:'--k7'}
+];
+const DEFAULTS={
+  rev:19000, cm:15, supPT:60, fund:true,
+  tax:{cbs:9.21, ibs:18.70, simpCred:4, icmsSimp:2.5, presum:50},
+  split:{start:2027, days:35, cdi:14},
+  banners:{PA:{n:'Premium',mb:32},EM:{n:'Supermercado',mb:27},PX:{n:'Proximidade',mb:31}},
+  ufs:[
+    {uf:'SP',share:76, icms:18,  PA:47, EM:35, PX:18, ecom:12, ibsAdj:0, inc:0},
+    {uf:'RJ',share:10, icms:22,  PA:45, EM:55, PX:0,  ecom:11, ibsAdj:0, inc:0},
+    {uf:'DF',share:3.5,icms:20,  PA:100,EM:0,  PX:0,  ecom:10, ibsAdj:0, inc:0},
+    {uf:'CE',share:3.5,icms:20,  PA:85, EM:15, PX:0,  ecom:8,  ibsAdj:0, inc:0},
+    {uf:'PE',share:2.5,icms:20.5,PA:35, EM:50, PX:15, ecom:7,  ibsAdj:0, inc:0},
+    {uf:'PI',share:1.2,icms:22.5,PA:100,EM:0,  PX:0,  ecom:5,  ibsAdj:0, inc:0},
+    {uf:'GO',share:1.0,icms:19,  PA:100,EM:0,  PX:0,  ecom:6,  ibsAdj:0, inc:0},
+    {uf:'PB',share:0.8,icms:20,  PA:70, EM:30, PX:0,  ecom:5,  ibsAdj:0, inc:0},
+    {uf:'BA',share:0.8,icms:20.5,PA:100,EM:0,  PX:0,  ecom:5,  ibsAdj:0, inc:0},
+    {uf:'MS',share:0.7,icms:17,  PA:100,EM:0,  PX:0,  ecom:5,  ibsAdj:0, inc:0}
+  ],
+  cats:[
+    {id:'cb', n:'Cesta Básica Nacional',            ref:'Anexo I · zero',              PA:20,EM:30,PX:22, icmsF:0.39,pc:0,  red:100,simp:10,rural:0, resid:0.5,is:0, el:-0.2},
+    {id:'hf', n:'Hortifrúti e ovos',                ref:'Anexo XV · zero',             PA:10,EM:8, PX:8,  icmsF:0,   pc:0,  red:100,simp:35,rural:30,resid:0,  is:0, el:-0.3},
+    {id:'a60',n:'Alimentos com redução',            ref:'Anexo VII · −60%',            PA:15,EM:12,PX:15, icmsF:0.8, pc:1,  red:60, simp:15,rural:10,resid:1,  is:0, el:-0.4},
+    {id:'pd', n:'Mercearia e bebidas não alcoólicas',ref:'Alíquota padrão',            PA:30,EM:28,PX:33, icmsF:0.9, pc:0.8,red:0,  simp:8, rural:0, resid:2.5,is:0, el:-0.5},
+    {id:'al', n:'Bebidas alcoólicas',               ref:'Padrão + Imposto Seletivo',   PA:10,EM:7, PX:12, icmsF:1.1, pc:0,  red:0,  simp:3, rural:0, resid:12, is:10,el:-0.8},
+    {id:'hl', n:'Higiene e limpeza',                ref:'Anexo VIII parcial · −60%',   PA:10,EM:12,PX:8,  icmsF:1,   pc:0.5,red:24, simp:5, rural:0, resid:5,  is:0, el:-0.5},
+    {id:'na', n:'Bazar e não alimentos',            ref:'Alíquota padrão',             PA:5, EM:3, PX:2,  icmsF:1,   pc:1,  red:0,  simp:12,rural:0, resid:4,  is:0, el:-0.8}
+  ],
+  opex:{
+    loja:{en:1.8, sv:4,  elec:85,  pcRes:6.5, iss:3, newRes:1.5},
+    ecom:{en:0.6, sv:14, elec:100, pcRes:6.5, iss:3, newRes:1.5}
+  },
+  base:{migr:0, capture:75, mis:3,   retain:0, passUp:100},
+  plan:{migr:50,capture:98, mis:0.5, retain:0, passUp:100}
+};
+
+function zeroComps(){const o={};COMPS.forEach(c=>o[c.k]=0);return o}
+function addComps(a,b){for(const k in b)a[k]=(a[k]||0)+b[k]}
+function sumC(o){let s=0;for(const k in o)s+=o[k];return s}
+
+function model(S,L,y){
+  const T=S.tax, F=ICMS_F[y], IF=IBS_F[y];
+  const cbsY = y>=2027 ? (y<=2028 ? T.cbs-0.1 : T.cbs) : 0;
+  const ibsBaseY = (y>=2027 && y<=2028) ? 0.1 : IF*T.ibs;
+  const fullRef = T.cbs+T.ibs;
+  const w = fullRef>0 ? (cbsY+ibsBaseY)/fullRef : 0;
+  const pcOn = y<=2026;
+  const uSum = S.ufs.reduce((a,u)=>a+(+u.share||0),0)||1;
+  const out={tot:zeroComps(), G0:0, Gy:0, byUF:{}, byBan:{}, byBanCh:{}, byCat:{}};
+  BKEYS.forEach(b=>{out.byBan[b]={c:zeroComps(),G0:0}; CHS.forEach(ch=>out.byBanCh[b+'|'+ch]={c:zeroComps(),G0:0})});
+  S.cats.forEach(c=>out.byCat[c.id]={c:zeroComps(),G0:0,Gy:0,tax0:0,taxN:0,Gfull:0});
+  for(const u of S.ufs){
+    const uo={c:zeroComps(),G0:0,Gy:0};
+    const Guf=S.rev*((+u.share||0)/uSum);
+    const ibsUF = ibsBaseY + (y>=2029 ? IF*(+u.ibsAdj||0) : 0);
+    const bSum=(+u.PA||0)+(+u.EM||0)+(+u.PX||0)||1;
+    for(const b of BKEYS){
+      const bs=(+u[b]||0)/bSum; if(bs<=0) continue;
+      const mb=S.banners[b].mb/100;
+      const mixSum=S.cats.reduce((a,c)=>a+(+c[b]||0),0)||1;
+      for(const ch of CHS){
+        const chs = ch==='ecom' ? u.ecom/100 : 1-u.ecom/100; if(chs<=0) continue;
+        const Gc=Guf*bs*chs, ox=S.opex[ch];
+        const cc=zeroComps();
+        // créditos em despesas
+        const energy = ox.en/100*Gc*(u.icms/100)*(1-F);
+        const serv = ox.sv/100*Gc*((y>=2027?ox.pcRes/100:0) + ox.iss/100*(1-F) - ox.newRes/100*w);
+        cc.despesas += (energy+serv)*L.capture/100;
+        let GyC=0;
+        for(const c of S.cats){
+          const G0=Gc*((+c[b]||0)/mixSum); if(G0<=0) continue;
+          const i=Math.min(u.icms*c.icmsF,40)/100, p=0.0925*c.pc;
+          const P0=G0*(1-i)*(1-p), C0=P0*(1-mb);
+          const red=c.red/100;
+          const newRate=(cbsY+ibsUF)/100*(1-red);
+          const tFull=(fullRef+(+u.ibsAdj||0))/100*(1-red);
+          const iy=i*F, py=pcOn?p:0;
+          const dC = y>=2027 ? C0*(-c.resid/100*S.supPT/100 + c.is/100) : 0;
+          const Gfull=(P0+dC)/((1-iy)*(1-py))*(1+newRate);
+          const pt = Gfull<G0 ? 1-L.retain/100 : L.passUp/100;
+          const Gy=G0+pt*(Gfull-G0);
+          const Py=Gy/(1+newRate)*(1-iy)*(1-py);
+          const dp=Gy/G0-1;
+          const k={};
+          k.preco=(Py-P0)-dC;
+          k.volume=c.el*dp*(S.cm/100)*P0;
+          const s=c.simp/100, r=c.rural/100, sN=s*(1-L.migr/100);
+          const oldLoss=s*Math.max(0,i-T.icmsSimp/100)*C0;
+          const newFull=(sN*Math.max(0,tFull-T.simpCred/100)+r*tFull*(1-T.presum/100))*C0;
+          k.fornec=-(oldLoss*F+newFull*w-oldLoss);
+          const stdY=(cbsY+ibsUF)/100;
+          k.classif = red>0 ? -(L.mis/100*Gy*(stdY-newRate)/(1+stdY)) : 0;
+          k.split = y>=S.split.start ? -((Gy-Gy/(1+newRate))*mb*ox.elec/100*S.split.days/365*S.split.cdi/100) : 0;
+          addComps(cc,k);
+          const co=out.byCat[c.id];
+          addComps(co.c,k); co.G0+=G0; co.Gy+=Gy;
+          co.tax0+=G0-P0; co.taxN+=(Gfull-(P0+dC)); co.Gfull+=Gfull;
+          GyC+=Gy;
+        }
+        addComps(uo.c,cc); uo.G0+=Gc; uo.Gy+=GyC;
+        addComps(out.byBan[b].c,cc); out.byBan[b].G0+=Gc;
+        addComps(out.byBanCh[b+'|'+ch].c,cc); out.byBanCh[b+'|'+ch].G0+=Gc;
+      }
+    }
+    const inc=+u.inc||0;
+    const lost = S.fund ? (y>=2033?inc:0) : inc*(1-F);
+    uo.c.incent-=lost;
+    out.byUF[u.uf]=uo;
+    addComps(out.tot,uo.c); out.G0+=uo.G0; out.Gy+=uo.Gy;
+  }
+  out.net=sumC(out.tot);
+  return out;
+}
+// MODEL-END
+
+/* ---------- estado ---------- */
+const KEY='contrapeso-sim-v1';
+const clone=o=>JSON.parse(JSON.stringify(o));
+let S;
+try{const raw=localStorage.getItem(KEY); S=raw?JSON.parse(raw):clone(DEFAULTS); if(!S.cats||!S.ufs||!S.plan) S=clone(DEFAULTS);}catch(e){S=clone(DEFAULTS)}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let YEAR=2033;
+
+/* ---------- formatação ---------- */
+const nf=(v,d=1)=>(Math.abs(v)<0.05&&d===1?0:v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const sg=(v,d=1)=>(v>0.049?'+':'')+nf(v,d);
+const pct=(v,d=1)=>sg(v*100,d)+'%';
+const cls=v=>v>0.049?'pos':(v<-0.049?'neg':'');
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const el=id=>document.getElementById(id);
+
+/* ---------- alavancas ---------- */
+const LEV=[['migr','%'],['capture','%'],['mis','%'],['retain','%'],['passUp','%']];
+function bindLevers(){
+  LEV.forEach(([k,u])=>{
+    const inp=el('L_'+k);
+    inp.value=S.plan[k];
+    el('V_'+k).textContent=nf(+S.plan[k],k==='mis'?1:0)+u;
+    inp.oninput=()=>{S.plan[k]=+inp.value; el('V_'+k).textContent=nf(+inp.value,k==='mis'?1:0)+u; schedule()};
+  });
+}
+el('btnResetPlan').onclick=()=>{S.plan=clone(DEFAULTS.plan);bindLevers();schedule()};
+el('btnZeroPlan').onclick=()=>{S.plan=clone(S.base);bindLevers();schedule()};
+
+/* ---------- anos ---------- */
+const PHASE={
+  2026:'Teste: CBS 0,9% e IBS 0,1% destacados e compensados. Sem efeito de caixa.',
+  2027:'CBS plena; PIS/Cofins extintos; IPI zero; Imposto Seletivo; IBS 0,1%.',
+  2028:'Igual a 2027. ICMS integral.',
+  2029:'ICMS a 90% da alíquota; IBS a 10% da referência.',
+  2030:'ICMS a 80%; IBS a 20%.',
+  2031:'ICMS a 70%; IBS a 30%.',
+  2032:'ICMS a 60%; IBS a 40%. Último ano do fundo de compensação.',
+  2033:'Regime pleno: ICMS e ISS extintos; IBS e CBS integrais.'
+};
+function renderYears(){
+  el('years').innerHTML=YEARS.map(y=>`<button type="button" data-y="${y}" aria-pressed="${y===YEAR}">${y}</button>`).join('');
+  el('years').querySelectorAll('button').forEach(b=>b.onclick=()=>{YEAR=+b.dataset.y;renderAll()});
+  el('phase').textContent=PHASE[YEAR];
+  el('timeline').innerHTML=YEARS.map(y=>`<div class="${y===YEAR?'on':''}"><span class="y">${y}</span><span class="t">${PHASE[y]}</span></div>`).join('');
+}
+
+/* ---------- render ---------- */
+let R={};
+function computeAll(){
+  R.base={},R.plan={};
+  YEARS.forEach(y=>{R.base[y]=model(S,S.base,y);R.plan[y]=model(S,S.plan,y)});
+  // contribuição isolada de cada alavanca no ano selecionado e no acumulado
+  R.lev={};
+  LEV.forEach(([k])=>{
+    const L=Object.assign({},S.base,{[k]:S.plan[k]});
+    let acc=0, yr=0;
+    YEARS.forEach(y=>{const v=model(S,L,y).net-R.base[y].net; acc+=v; if(y===YEAR) yr=v});
+    R.lev[k]={yr,acc};
+  });
+}
+
+function renderKPIs(){
+  const p=R.plan[YEAR], b=R.base[YEAR];
+  let accP=0,accB=0; YEARS.forEach(y=>{if(y>=2027){accP+=R.plan[y].net;accB+=R.base[y].net}});
+  const dPrice=p.Gy/p.G0-1;
+  el('kpis').innerHTML=`
+   <div class="kpi"><span class="k">EBITDA em ${YEAR}, com o plano</span><span class="v ${cls(p.net)}">${sg(p.net)}</span><span class="s">${pct(p.net/p.G0,2)} da receita bruta</span></div>
+   <div class="kpi"><span class="k">Sem ações (base)</span><span class="v ${cls(b.net)}">${sg(b.net)}</span><span class="s">ganho do plano ${sg(p.net-b.net)}</span></div>
+   <div class="kpi"><span class="k">Acumulado 2027–2033, plano</span><span class="v ${cls(accP)}">${sg(accP,0)}</span><span class="s">base ${sg(accB,0)}</span></div>
+   <div class="kpi"><span class="k">Preço médio ao consumidor</span><span class="v">${pct(dPrice)}</span><span class="s">variação vs. hoje, ${YEAR}</span></div>`;
+}
+
+function niceStep(range,n){const raw=range/n,mag=Math.pow(10,Math.floor(Math.log10(raw||1))),r=raw/mag;return (r<1.5?1:r<3?2:r<7?5:10)*mag}
+function renderChart(){
+  el('legend').innerHTML=COMPS.map(c=>`<span><i style="background:var(${c.c})"></i>${c.n}</span>`).join('')+
+    `<span><i style="background:var(--fg);border-radius:50%"></i>Líquido plano</span><span><i style="background:none;border-top:2px dashed var(--muted);height:0;width:14px;border-radius:0"></i>Líquido base</span>`;
+  const W=760,H=300,m={l:56,r:12,t:12,b:28};
+  let mx=0,mn=0;
+  YEARS.forEach(y=>{let pos=0,neg=0;COMPS.forEach(c=>{const v=R.plan[y].tot[c.k];if(v>0)pos+=v;else neg+=v});mx=Math.max(mx,pos,R.base[y].net);mn=Math.min(mn,neg,R.base[y].net)});
+  if(mx-mn<1){mx+=1;mn-=1}
+  const st=niceStep(mx-mn,5); mx=Math.ceil(mx/st)*st; mn=Math.floor(mn/st)*st;
+  const yS=v=>m.t+(mx-v)/(mx-mn)*(H-m.t-m.b);
+  const bw=(W-m.l-m.r)/YEARS.length, xC=i=>m.l+bw*i+bw/2;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Impacto anual no EBITDA por componente, 2026 a 2033">`;
+  for(let v=mn;v<=mx+1e-9;v+=st){s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${yS(v)}" y2="${yS(v)}" stroke="var(--line)" stroke-width="${Math.abs(v)<1e-9?1.5:1}"/><text x="${m.l-8}" y="${yS(v)+4}" text-anchor="end">${nf(v,0)}</text>`}
+  s+=`<text x="4" y="${m.t+8}" text-anchor="start">R$ mi</text>`;
+  YEARS.forEach((y,i)=>{
+    let up=0,dn=0; const x=xC(i)-bw*0.3, w=bw*0.6;
+    COMPS.forEach(c=>{const v=R.plan[y].tot[c.k]; if(Math.abs(v)<1e-6) return;
+      if(v>0){s+=`<rect x="${x}" y="${yS(up+v)}" width="${w}" height="${Math.max(0.5,yS(up)-yS(up+v))}" fill="var(${c.c})"><title>${c.n}: ${sg(v)}</title></rect>`;up+=v}
+      else{s+=`<rect x="${x}" y="${yS(dn)}" width="${w}" height="${Math.max(0.5,yS(dn+v)-yS(dn))}" fill="var(${c.c})"><title>${c.n}: ${sg(v)}</title></rect>`;dn+=v}});
+    s+=`<text x="${xC(i)}" y="${H-8}" text-anchor="middle" style="${y===YEAR?'fill:var(--fg);font-weight:600':''}">${y}</text>`;
+  });
+  s+=`<polyline fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" points="${YEARS.map((y,i)=>xC(i)+','+yS(R.base[y].net)).join(' ')}"/>`;
+  s+=`<polyline fill="none" stroke="var(--fg)" stroke-width="1.5" points="${YEARS.map((y,i)=>xC(i)+','+yS(R.plan[y].net)).join(' ')}"/>`;
+  YEARS.forEach((y,i)=>{const v=R.plan[y].net;s+=`<circle cx="${xC(i)}" cy="${yS(v)}" r="${y===YEAR?5:3.5}" fill="var(--fg)" stroke="var(--surface)" stroke-width="1.5"><title>${y} plano: ${sg(v)} · base: ${sg(R.base[y].net)}</title></circle>`});
+  s+=`</svg>`;
+  el('chart').innerHTML=s;
+}
+
+const LEVTXT={
+  migr:['Converter fornecedores do Simples','Mapear o cadastro de fornecedores por regime e negociar, em especial em hortifrúti e alimentos do Anexo VII, a opção pelo IBS/CBS fora do Simples ou desconto equivalente ao crédito perdido. A opção para 2027 já venceu em setembro de 2026; a próxima janela é a de 2028.'],
+  capture:['Garantir a tomada de créditos em despesas','Energia, serviços de TI, marketing, segurança, limpeza, last mile e comissões de marketplace passam a gerar crédito. O ganho depende de ERP parametrizado, conciliação com a apuração assistida e fornecedores em dia, já que o crédito só existe se o tributo foi recolhido.'],
+  mis:['Sanear NCM e cClassTrib do sortimento','Cada SKU dos Anexos I, VII, VIII e XV classificado na alíquota cheia vira preço acima da concorrência ou margem perdida. Prioridade de TI: regra de cadastro, trava no PDV e auditoria contínua por NCM.'],
+  retain:['Política de preço sobre a queda de carga','Reter parte da redução melhora margem, mas custa volume. Na cesta básica a queda deve chegar ao consumidor: é a intenção da lei e é onde a concorrência será mais agressiva.'],
+  passUp:['Repasse dos aumentos','Absorver o Imposto Seletivo em bebidas alcoólicas protege volume mas consome margem; o simulador mostra o custo de cada ponto não repassado.']
+};
+function renderInsights(){
+  const p=R.plan[YEAR];
+  const items=[];
+  LEV.forEach(([k])=>{const v=R.lev[k]; if(Math.abs(v.acc)>0.05) items.push({t:LEVTXT[k][0],d:LEVTXT[k][1],v:v.yr,acc:v.acc,lev:true})});
+  // diagnósticos
+  const worst=COMPS.map(c=>({c,v:p.tot[c.k]})).sort((a,b)=>a.v-b.v)[0];
+  if(worst && worst.v<-0.05){
+    const tips={fornec:'O crédito perdido em compras do Simples e de produtor rural é a maior pressão. Atacar com a alavanca de fornecedores e revisar preço de compra.',
+      split:'O split payment antecipa o recolhimento e consome capital de giro. Rever prazos de recebíveis de cartão e o custo de antecipação; acompanhar a modalidade de split com abatimento de créditos.',
+      classif:'Erros de classificação pesam mais que qualquer outro item: o cadastro fiscal é o primeiro projeto.',
+      preco:'A política de preço está consumindo margem. Revise retenção e repasse por categoria.',
+      volume:'A política de preço está custando volume. Reduza a retenção das quedas de preço.',
+      incent:'O fim dos benefícios de ICMS pesa no regime pleno. Renegociar contrapartidas e rever a malha logística, que deixa de ter motivo fiscal.',
+      despesas:'Os créditos em despesas estão negativos: verifique as premissas de serviços.'};
+    items.push({t:'Maior pressão em '+YEAR+': '+worst.c.n.toLowerCase(),d:tips[worst.c.k]||'',v:worst.v,diag:true});
+  }
+  const ufs=Object.entries(p.byUF).map(([k,o])=>({k,pct:sumC(o.c)/o.G0,v:sumC(o.c)})).filter(x=>isFinite(x.pct));
+  if(ufs.length>1){
+    ufs.sort((a,b)=>a.pct-b.pct);
+    const lo=ufs[0], hi=ufs[ufs.length-1];
+    items.push({t:`Estado mais exposto: ${lo.k}`,d:`${lo.k} tem o pior resultado proporcional (${pct(lo.pct,2)} da receita) contra ${hi.k} no outro extremo (${pct(hi.pct,2)}). Use a tabela por estado para revisar sortimento, preço local e lojas com contribuição baixa antes de 2029, quando o ICMS começa a cair.`,v:lo.v,diag:true});
+  }
+  const cats=S.cats.map(c=>({c,dp:p.byCat[c.id].Gy/p.byCat[c.id].G0-1})).filter(x=>isFinite(x.dp)).sort((a,b)=>b.dp-a.dp);
+  if(cats.length && cats[0].dp>0.005){
+    items.push({t:`Maior alta de preço: ${cats[0].c.n.toLowerCase()} (${pct(cats[0].dp)})`,d:'Antecipar comunicação com o cliente e rever sortimento e marcas próprias nessa categoria. O Imposto Seletivo incide na indústria e chega ao varejo como custo sem crédito.',v:0,info:true});
+  }
+  items.sort((a,b)=>(b.lev?1:0)-(a.lev?1:0) || Math.abs(b.acc||b.v)-Math.abs(a.acc||a.v));
+  el('actSub').textContent=`Ganho de cada alavanca do plano isolada, em ${YEAR} e no acumulado 2027–2033, seguido dos pontos de atenção.`;
+  el('insights').innerHTML=items.map((it,i)=>`<li><span class="rank">${it.lev?String(i+1).padStart(2,'0'):'!'}</span><div><b>${it.t}</b><p>${it.d}</p></div><span class="amt ${it.info?'':cls(it.v)}">${it.lev?sg(it.v)+'<span class="sub" style="display:block;font-size:11px;color:var(--muted);text-align:right">acum. '+sg(it.acc,0)+'</span>':(it.info?'':sg(it.v))}</span></li>`).join('');
+}
+
+function renderUF(){
+  const p=R.plan[YEAR], b=R.base[YEAR];
+  const rows=S.ufs.map(u=>{const o=p.byUF[u.uf], ob=b.byUF[u.uf]; return {u,o,net:sumC(o.c),bnet:sumC(ob.c)}});
+  const maxAbs=Math.max(...rows.map(r=>Math.abs(r.net/r.o.G0)),1e-9);
+  let h=`<thead><tr><th>Estado</th><th class="num">Receita bruta</th><th class="num">ICMS modal</th><th class="num">Δ preço</th><th class="num">Base</th><th class="num">Plano</th><th class="num">% receita</th><th>Leitura</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const pr=r.net/r.o.G0, dp=r.o.Gy/r.o.G0-1;
+    const chip = pr<-0.002?'<span class="chip l">Revisar</span>':(pr<0?'<span class="chip w">Atenção</span>':'<span class="chip g">Favorável</span>');
+    const bwid=Math.round(Math.abs(pr)/maxAbs*40);
+    h+=`<tr><td><b>${r.u.uf}</b></td><td class="num">${nf(r.o.G0,0)}</td><td class="num">${nf(r.u.icms,1)}%</td><td class="num">${pct(dp)}</td><td class="num ${cls(r.bnet)}">${sg(r.bnet)}</td><td class="num ${cls(r.net)}">${sg(r.net)}</td><td class="num ${cls(pr)}">${pct(pr,2)}<span class="bar" style="width:${bwid}px;background:var(${pr<0?'--loss':'--gain'})"></span></td><td>${chip}</td></tr>`;
+  });
+  h+=`</tbody><tfoot><tr><td>Total</td><td class="num">${nf(p.G0,0)}</td><td></td><td class="num">${pct(p.Gy/p.G0-1)}</td><td class="num ${cls(b.net)}">${sg(b.net)}</td><td class="num ${cls(p.net)}">${sg(p.net)}</td><td class="num ${cls(p.net)}">${pct(p.net/p.G0,2)}</td><td></td></tr></tfoot>`;
+  el('tUF').innerHTML=h;
+}
+
+function renderBan(){
+  const p=R.plan[YEAR];
+  let h=`<thead><tr><th>Bandeira</th><th class="num">Receita</th><th class="num">Lojas físicas</th><th class="num">E-commerce</th><th class="num">Total</th><th class="num">% receita</th></tr></thead><tbody>`;
+  BKEYS.forEach(bk=>{
+    const o=p.byBan[bk]; if(o.G0<=0) return;
+    const l=sumC(p.byBanCh[bk+'|loja'].c), e=sumC(p.byBanCh[bk+'|ecom'].c), t=sumC(o.c);
+    const le=p.byBanCh[bk+'|ecom'].G0;
+    h+=`<tr><td><b>${S.banners[bk].n}</b><span class="sub">margem bruta ${nf(S.banners[bk].mb,0)}%</span></td><td class="num">${nf(o.G0,0)}</td><td class="num ${cls(l)}">${sg(l)}</td><td class="num ${cls(e)}">${sg(e)}<span class="sub">${le>0?pct(e/le,2)+' do canal':''}</span></td><td class="num ${cls(t)}">${sg(t)}</td><td class="num ${cls(t)}">${pct(t/o.G0,2)}</td></tr>`;
+  });
+  h+=`</tbody>`;
+  el('tBan').innerHTML=h;
+}
+
+function renderCat(){
+  const p=R.plan[YEAR];
+  let h=`<thead><tr><th>Categoria</th><th>Tratamento</th><th class="num">Carga hoje</th><th class="num">Carga ${YEAR}</th><th class="num">Δ preço</th><th class="num">Impacto</th><th class="num">Fornecedores</th></tr></thead><tbody>`;
+  S.cats.forEach(c=>{
+    const o=p.byCat[c.id]; if(o.G0<=0) return;
+    const t0=o.tax0/o.G0;
+    const tN=o.Gfull>0?o.taxN/o.Gfull:0;
+    const net=sumC(o.c);
+    h+=`<tr><td><b>${c.n}</b></td><td style="text-align:left"><span class="chip n">${c.ref}</span></td><td class="num">${nf(t0*100,1)}%</td><td class="num">${nf(tN*100,1)}%</td><td class="num ${o.Gy/o.G0-1>0?'neg':'pos'}">${pct(o.Gy/o.G0-1)}</td><td class="num ${cls(net)}">${sg(net)}</td><td class="num ${cls(o.c.fornec)}">${sg(o.c.fornec)}</td></tr>`;
+  });
+  h+=`</tbody>`;
+  el('tCat').innerHTML=h;
+}
+
+/* ---------- premissas ---------- */
+const TABS=[['geral','Alíquotas e finanças'],['uf','Estados'],['cat','Categorias'],['opex','Despesas e canais']];
+let TAB='geral';
+function setPath(path,val){const ks=path.split('.');let o=S;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];o[ks[ks.length-1]]=val}
+function getPath(path){return path.split('.').reduce((o,k)=>o[k],S)}
+function field(path,label,hint,step='0.1'){return `<div class="pfield"><label for="p_${path}">${label}</label><input id="p_${path}" type="number" step="${step}" data-p="${path}" value="${getPath(path)}"><small>${hint}</small></div>`}
+function pin(path,step='0.1'){return `<input type="number" step="${step}" data-p="${path}" id="p_${path}" value="${getPath(path)}" aria-label="${path}">`}
+function renderParams(){
+  el('ptabs').innerHTML=TABS.map(([k,n])=>`<button role="tab" type="button" aria-selected="${k===TAB}" data-t="${k}">${n}</button>`).join('');
+  el('ptabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;renderParams()});
+  let h='';
+  if(TAB==='geral'){
+    h=`<div class="pgrid">
+     ${field('rev','Receita bruta anual (R$ mi)','Receita bruta anual da rede.','100')}
+     ${field('tax.cbs','CBS de referência (%)','Estimativa CGIBS jul/2026: 9,21%. Fazenda 2024: 8,8%.')}
+     ${field('tax.ibs','IBS de referência (%)','Estimativa CGIBS: 18,70%. Cada estado e município pode fixar a sua.')}
+     ${field('tax.simpCred','Crédito médio de compra do Simples (%)','IBS/CBS recolhidos dentro do DAS que o comprador pode creditar.')}
+     ${field('tax.icmsSimp','Crédito de ICMS do Simples hoje (%)','Parcela de ICMS destacada pelo optante.')}
+     ${field('tax.presum','Crédito presumido de produtor rural (% do tributo)','Percentual a ser fixado em regulamento (art. 168). Hipótese.','1')}
+     ${field('supPT','Repasse da indústria (%)','Quanto da queda de custo (IPI zero, fim de PIS/Cofins monofásico e resíduos) chega ao preço de compra.','5')}
+     ${field('cm','Margem de contribuição (%)','Usada para valorizar ganho ou perda de volume.','1')}
+     ${field('split.start','Início do split payment','Ano a partir do qual o tributo é retido na liquidação.','1')}
+     ${field('split.days','Dias de caixa perdidos no split','Prazo médio atual entre venda e recolhimento.','1')}
+     ${field('split.cdi','Custo de capital (% a.a.)','Taxa para valorizar o capital de giro.','0.25')}
+     <div class="pfield"><label for="p_fund">Fundo de compensação de benefícios</label><select id="p_fund"><option value="1" ${S.fund?'selected':''}>Compensa até 2032</option><option value="0" ${!S.fund?'selected':''}>Sem compensação</option></select><small>Benefícios onerosos de ICMS são compensados até 2032 pelo fundo da EC 132.</small></div>
+    </div>
+    <h3 style="margin-top:8px">Margem bruta por bandeira (%)</h3>
+    <div class="pgrid">${BKEYS.map(b=>field('banners.'+b+'.mb',S.banners[b].n,'Sobre a receita líquida.','0.5')).join('')}</div>`;
+  } else if(TAB==='uf'){
+    const sum=S.ufs.reduce((a,u)=>a+(+u.share||0),0);
+    h=`<div class="tbl"><table class="ptable"><thead><tr><th>UF</th><th class="num">% receita</th><th class="num">ICMS modal %</th><th class="num">Premium %</th><th class="num">Supermercado %</th><th class="num">Proximidade %</th><th class="num">E-commerce %</th><th class="num">Ajuste IBS (pp)</th><th class="num">Benefício ICMS R$ mi/ano</th></tr></thead><tbody>`+
+    S.ufs.map((u,i)=>`<tr><td><b>${u.uf}</b></td>${['share','icms','PA','EM','PX','ecom','ibsAdj','inc'].map(k=>`<td>${pin('ufs.'+i+'.'+k)}</td>`).join('')}</tr>`).join('')+
+    `</tbody></table></div><p class="note">Soma das participações: <b class="num">${nf(sum,1)}%</b>${Math.abs(sum-100)>0.05?' <span class="warnline">· o cálculo normaliza para 100%</span>':''}. A divisão por estado e bandeira é estimada a partir da contagem de lojas; substitua pela receita real por filial. Ajuste IBS: diferença entre a alíquota que o estado fixar e a de referência.</p>`;
+  } else if(TAB==='cat'){
+    const sums=BKEYS.map(b=>S.cats.reduce((a,c)=>a+(+c[b]||0),0));
+    h=`<div class="tbl"><table class="ptable"><thead><tr><th>Categoria</th><th class="num">Mix PA %</th><th class="num">Mix EM %</th><th class="num">Mix Prox %</th><th class="num">ICMS × modal</th><th class="num">PIS/Cofins (0–1)</th><th class="num">Redução IBS/CBS %</th><th class="num">Compras Simples %</th><th class="num">Produtor rural %</th><th class="num">Resíduo no custo %</th><th class="num">Seletivo %</th><th class="num">Elasticidade</th></tr></thead><tbody>`+
+    S.cats.map((c,i)=>`<tr><td><b>${c.n}</b><span class="sub" style="display:block;font-size:11px;color:var(--muted)">${c.ref}</span></td>${['PA','EM','PX','icmsF','pc','red','simp','rural','resid','is','el'].map(k=>`<td>${pin('cats.'+i+'.'+k,k==='icmsF'||k==='pc'||k==='el'?'0.05':'0.5')}</td>`).join('')}</tr>`).join('')+
+    `</tbody><tfoot><tr><td>Soma do mix</td>${sums.map(s=>`<td class="num">${nf(s,0)}%</td>`).join('')}<td colspan="9"></td></tr></tfoot></table></div>
+    <p class="note">ICMS × modal: carga efetiva de ICMS da categoria em relação à alíquota modal do estado (0,39 ≈ 7% em SP). PIS/Cofins: fração das vendas tributadas a 9,25% no varejo (0 para alíquota zero ou monofásico). Resíduo no custo: IPI, PIS/Cofins monofásico e outros tributos sem crédito embutidos no preço de compra, que somem a partir de 2027. Imposto Seletivo em bebidas alcoólicas: hipótese, alíquotas ainda em definição.</p>`;
+  } else {
+    h=`<div class="tbl"><table class="ptable"><thead><tr><th>Canal</th><th class="num">Energia % venda</th><th class="num">Serviços % venda</th><th class="num">Vendas eletrônicas %</th><th class="num">PIS/Cofins sem crédito %</th><th class="num">ISS %</th><th class="num">Resíduo novo %</th></tr></thead><tbody>`+
+    CHS.map(ch=>`<tr><td><b>${ch==='loja'?'Lojas físicas':'E-commerce'}</b></td>${['en','sv','elec','pcRes','iss','newRes'].map(k=>`<td>${pin('opex.'+ch+'.'+k)}</td>`).join('')}</tr>`).join('')+
+    `</tbody></table></div><p class="note">Energia: hoje o ICMS na conta de luz do comércio não gera crédito; no novo regime gera. Serviços: TI, marketing, limpeza, segurança, frete de última milha e comissões de plataformas, hoje com ISS e boa parte de PIS/Cofins sem crédito. Resíduo novo: crédito que continua perdido em serviços comprados do Simples. Vendas eletrônicas: cartão e Pix, sujeitas ao split payment. Aluguéis ficam fora do cálculo: locação terá redutor de 70% e o efeito depende de cada contrato.</p>`;
+  }
+  el('ppanel').innerHTML=h;
+  el('ppanel').querySelectorAll('input[data-p]').forEach(inp=>inp.oninput=()=>{const v=parseFloat(inp.value);if(!isNaN(v)){setPath(inp.dataset.p,v);schedule(inp.dataset.p.startsWith('ufs')||inp.dataset.p.startsWith('cats'))}});
+  const fs=el('p_fund'); if(fs) fs.onchange=()=>{S.fund=fs.value==='1';schedule()};
+}
+
+el('btnReset').onclick=()=>{S=clone(DEFAULTS);bindLevers();renderParams();renderAll()};
+el('btnCopy').onclick=()=>{
+  const p=R.plan[YEAR];
+  const lines=[['UF','Receita bruta R$ mi','ICMS modal %','Δ preço %','Base R$ mi','Plano R$ mi','% receita'].join('\t')];
+  S.ufs.forEach(u=>{const o=p.byUF[u.uf],n=sumC(o.c),bn=sumC(R.base[YEAR].byUF[u.uf].c);lines.push([u.uf,nf(o.G0,1),nf(u.icms,1),nf((o.Gy/o.G0-1)*100,2),nf(bn,1),nf(n,1),nf(n/o.G0*100,2)].join('\t'))});
+  const txt=lines.join('\n');
+  const done=m=>{el('toast').textContent=m;setTimeout(()=>el('toast').textContent='',2500)};
+  try{navigator.clipboard.writeText(txt).then(()=>done('Copiado')).catch(()=>fallback())}catch(e){fallback()}
+  function fallback(){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done('Copiado')}catch(e){done('Selecione e copie manualmente')}ta.remove()}
+};
+
+let tmr=null;
+function schedule(refreshParamFooter){clearTimeout(tmr);tmr=setTimeout(()=>{save();renderAll();},120)}
+function renderAll(){computeAll();renderYears();renderKPIs();renderChart();renderInsights();renderUF();renderBan();renderCat();
+  // atualiza só os rodapés de soma sem perder o foco
+  if(TAB==='uf'||TAB==='cat'){const a=document.activeElement&&document.activeElement.id;renderParams();if(a&&el(a)){el(a).focus();}}
+}
+bindLevers();renderParams();renderAll();
+</script>
+
+</body>
+</html>
