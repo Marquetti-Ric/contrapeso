@@ -4,9 +4,11 @@
 // Com "firebase" vazio, as ferramentas funcionam sem login, com dados só no navegador.
 window.CONTRAPESO_CONFIG = {
   firebase: {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    appId: ""
+    apiKey: "AIzaSyBT42j6Gkrf47u8E1UQX172icevtvN2fww",
+    authDomain: "contrapeso-23903.firebaseapp.com",
+    projectId: "contrapeso-23903",
+    storageBucket: "contrapeso-23903.firebasestorage.app",
+    messagingSenderId: "236697138040",
+    appId: "1:236697138040:web:c46635d8decaca738e8e8d"
   }
 };
