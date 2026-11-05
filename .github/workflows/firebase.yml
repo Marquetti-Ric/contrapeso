@@ -67,19 +67,34 @@ jobs:
         if: steps.cfg.outputs.ok == 'true'
         with:
           node-version: 20
-      - uses: google-github-actions/auth@v2
+      - name: Preparar a chave da conta de serviço
         if: steps.cfg.outputs.ok == 'true'
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            let t = process.env.CONTA.replace(/^\uFEFF/, "").trim();
+            const diag = { tamanho: t.length, comecaComChave: t.startsWith("{"), temServiceAccount: t.includes("service_account"), pareceChavePem: t.startsWith("-----BEGIN") };
+            let j = null;
+            try { j = JSON.parse(t); } catch (e) {
+              try { const d = Buffer.from(t, "base64").toString("utf8"); if (d.trim().startsWith("{")) j = JSON.parse(d); } catch (e2) {}
+            }
+            if (!j || j.type !== "service_account" || !j.private_key || !j.client_email) {
+              console.log("::error::O secret FIREBASE_SERVICE_ACCOUNT não é o JSON da conta de serviço. Diagnóstico (sem o conteúdo): " + JSON.stringify(diag));
+              process.exit(1);
+            }
+            if (j.project_id !== process.env.PROJETO) console.log("::warning::O JSON é do projeto " + j.project_id + ", mas FIREBASE_PROJECT_ID é " + process.env.PROJETO + ".");
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/conta.json", JSON.stringify(j));
+            console.log("Chave válida da conta " + j.client_email);
+          '
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/conta.json" >> "$GITHUB_ENV"
       - name: Publicar regras e índices do Firestore
         if: steps.cfg.outputs.ok == 'true'
         run: npx --yes firebase-tools@13 deploy --only firestore:rules,firestore:indexes --project "$PROJETO" --non-interactive
-      - uses: google-github-actions/setup-gcloud@v2
-        if: steps.cfg.outputs.ok == 'true'
       - name: Configurar login (e-mail e senha, domínio do site)
         if: steps.cfg.outputs.ok == 'true'
         run: |
-          TOKEN=$(gcloud auth print-access-token)
+          npm install --no-save google-auth-library@9 > /dev/null 2>&1
+          TOKEN=$(node -e 'const {GoogleAuth}=require("google-auth-library");new GoogleAuth({scopes:["https://www.googleapis.com/auth/cloud-platform"]}).getAccessToken().then(t=>console.log(t))')
           URL="https://identitytoolkit.googleapis.com/admin/v2/projects/$PROJETO/config"
           curl -sS -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJETO" "$URL" > atual.json
           DOMINIOS=$(jq -c '(.authorizedDomains // []) + ["marquetti-ric.github.io"] | unique' atual.json)
