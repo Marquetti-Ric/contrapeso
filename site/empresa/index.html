@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Empresa e usuários · Contrapeso</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../app/base.css">
+<script src="../app/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../app/conta.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <a class="brand" href="../"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a>
+    <nav class="prodnav" aria-label="Ferramentas"><a href="../simulador/">Simulador</a><a href="../negociador/">Negociador</a><a href="./" aria-current="page">Empresa</a></nav>
+    <div class="acoes"><span class="muted" id="quem" style="font-size:13px"></span><button class="btn ghost pequeno" type="button" id="b-sair">Sair</button></div>
+  </div>
+
+  <div class="msg" id="m-geral" role="status"></div>
+
+  <section class="card" id="c-empresa" hidden>
+    <div class="card-head">
+      <div><div class="eyebrow" id="e-papel"></div><h1 id="e-nome"></h1></div>
+      <div class="acoes" id="w-trocar"><label for="s-empresa" class="muted" style="font-size:13px">Trocar de empresa</label><select id="s-empresa" style="width:auto"></select></div>
+    </div>
+    <div class="acoes"><a class="btn" href="../simulador/">Abrir o Simulador</a><a class="btn" href="../negociador/">Abrir o Negociador</a></div>
+    <form id="f-dados" hidden>
+      <div class="linha">
+        <div class="campo"><label for="d-nome">Nome da empresa</label><input id="d-nome" type="text" maxlength="120" required></div>
+        <div class="campo"><label for="d-cnpj">CNPJ</label><input id="d-cnpj" type="text" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"></div>
+      </div>
+      <div class="acoes"><button class="btn ghost" type="submit">Salvar dados da empresa</button><span class="msg" id="m-dados" role="status"></span></div>
+    </form>
+  </section>
+
+  <section class="card" id="c-usuarios" hidden>
+    <div class="card-head"><h2>Usuários</h2><span class="muted" id="u-conta" style="font-size:13px"></span></div>
+    <div class="msg" id="m-usuarios" role="status"></div>
+    <div class="tbl"><table><thead><tr><th>Pessoa</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead><tbody id="t-usuarios"></tbody></table></div>
+    <form id="f-convite" hidden>
+      <h3>Convidar uma pessoa</h3>
+      <div class="linha">
+        <div class="campo"><label for="i-email">E-mail</label><input id="i-email" type="email" required autocomplete="off"></div>
+        <div class="campo"><label for="i-nome">Nome <span class="muted">(opcional)</span></label><input id="i-nome" type="text" maxlength="120" autocomplete="off"></div>
+        <div class="campo"><label for="i-papel">Perfil</label><select id="i-papel"><option value="editor">Editor</option><option value="leitor">Leitor</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div class="acoes"><button class="btn" type="submit" id="b-convidar">Enviar convite</button><span class="muted" style="font-size:13px">A pessoa recebe um e-mail com o link para criar a senha.</span></div>
+    </form>
+    <div class="perfis">
+      <div><b>Admin</b>Convida e remove usuários, muda perfis, edita os dados da empresa e todas as premissas.</div>
+      <div><b>Editor</b>Importa dados, negocia, altera premissas e exporta. Não gerencia usuários.</div>
+      <div><b>Leitor</b>Consulta e exporta. Pode simular na tela, mas nada é salvo.</div>
+    </div>
+  </section>
+
+  <section class="card" id="c-master" hidden>
+    <div class="card-head"><div><div class="eyebrow">Usuário master</div><h2>Todas as empresas</h2></div><input id="m-busca" type="search" placeholder="Buscar empresa" style="width:240px" aria-label="Buscar empresa"></div>
+    <div class="tbl"><table><thead><tr><th>Empresa</th><th>CNPJ</th><th>Usuários</th><th>Seu acesso</th><th></th></tr></thead><tbody id="t-master"></tbody></table></div>
+  </section>
+
+  <section class="card" id="c-nova">
+    <h2 id="n-titulo">Criar outra empresa</h2>
+    <p class="muted" id="n-texto" style="font-size:14px">Você será o administrador da nova empresa. Os dados dela ficam separados das outras.</p>
+    <form id="f-nova">
+      <div class="linha">
+        <div class="campo"><label for="n-nome">Nome da empresa</label><input id="n-nome" type="text" maxlength="120" required></div>
+        <div class="campo"><label for="n-cnpj">CNPJ <span class="muted">(opcional)</span></label><input id="n-cnpj" type="text" inputmode="numeric" maxlength="18"></div>
+      </div>
+      <div class="acoes"><button class="btn ghost" type="submit">Criar empresa</button><span class="msg" id="m-nova" role="status"></span></div>
+    </form>
+  </section>
+
+  <footer class="foot">Ferramenta independente de estimativa sobre a reforma tributária do consumo. Não é parecer fiscal.</footer>
+</div>
+<script>
+(async function(){
+  const $=id=>document.getElementById(id), esc=Conta.esc;
+  const msg=(id,t,c)=>{const e=$(id);e.textContent=t||'';e.className='msg '+(c||'');if(t&&c==='ok')setTimeout(()=>{if(e.textContent===t)e.textContent=''},5000)};
+  const fmtCnpj=c=>c&&c.length===14?c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):(c||'');
+  const PAPEL={admin:'Admin',editor:'Editor',leitor:'Leitor',master:'Master'};
+  if(!Conta.ATIVO){location.replace('../entrar/');return}
+  Conta.estilos();
+  const sb=Conta.sb();
+  const s=await Conta.sessao();
+  if(!s){location.replace('../entrar/?volta='+encodeURIComponent(location.pathname));return}
+  $('b-sair').onclick=Conta.sair;
+  let me, lista, atual, confirmar=null;
+  async function carregar(){
+    try{[me,lista]=await Promise.all([Conta.eu(),Conta.minhasEmpresas()])}catch(e){msg('m-geral',Conta.traduz(e),'err');return}
+    $('quem').textContent=(me.nome?me.nome+' · ':'')+me.email+(me.master?' · master':'');
+    atual=Conta.empresaEscolhida(lista);
+    $('c-empresa').hidden=!atual;$('c-usuarios').hidden=!atual;
+    if(!lista.length){$('n-titulo').textContent='Crie a sua empresa';$('n-texto').textContent='Você ainda não faz parte de nenhuma empresa. Crie uma para começar, ou peça um convite ao administrador da sua.';}
+    else {$('n-titulo').textContent='Criar outra empresa';}
+    if(atual) await mostrarEmpresa();
+    $('c-master').hidden=!me.master; if(me.master) mostrarMaster();
+  }
+  async function mostrarEmpresa(){
+    const admin=['admin','master'].includes(atual.papel);
+    $('e-nome').textContent=atual.nome;
+    $('e-papel').textContent='Seu perfil: '+PAPEL[atual.papel]+(atual.cnpj?' · CNPJ '+fmtCnpj(atual.cnpj):'');
+    $('w-trocar').hidden=lista.length<2;
+    $('s-empresa').innerHTML=lista.map(e=>`<option value="${esc(e.id)}" ${e.id===atual.id?'selected':''}>${esc(e.nome)}${e.papel==='master'?' (master)':''}</option>`).join('');
+    $('f-dados').hidden=!admin; $('d-nome').value=atual.nome; $('d-cnpj').value=fmtCnpj(atual.cnpj);
+    $('f-convite').hidden=!admin;
+    await mostrarUsuarios(admin);
+  }
+  async function mostrarUsuarios(admin){
+    const {data,error}=await sb.rpc('usuarios_da_empresa',{p_empresa:atual.id});
+    if(error){msg('m-usuarios',Conta.traduz(error),'err');return}
+    $('u-conta').textContent=data.length+(data.length===1?' pessoa':' pessoas');
+    $('t-usuarios').innerHTML=data.map(u=>{
+      const eu=u.user_id===me.id;
+      const perfil= admin && !eu ? `<label class="oculto" for="p-${u.user_id}">Perfil de ${esc(u.email)}</label><select id="p-${u.user_id}" data-papel="${u.user_id}">${['admin','editor','leitor'].map(p=>`<option value="${p}" ${p===u.papel?'selected':''}>${PAPEL[p]}</option>`).join('')}</select>` : PAPEL[u.papel];
+      const sit= u.situacao==='ativo'?'<span class="chip g">Ativo</span>':'<span class="chip w">Convite pendente</span>';
+      const quando=u.ultimo_acesso?new Date(u.ultimo_acesso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
+      const acoes= eu?'<span class="muted" style="font-size:12px">você</span>': admin ? `${u.situacao!=='ativo'?`<button class="btn ghost pequeno" type="button" data-reenviar="${esc(u.email)}">Reenviar convite</button> `:''}<button class="btn perigo pequeno" type="button" data-remover="${u.user_id}">${confirmar===u.user_id?'Confirmar remoção':'Remover'}</button>`:'';
+      return `<tr><td><b>${esc(u.nome||u.email)}</b>${u.nome?`<span class="sub">${esc(u.email)}</span>`:''}</td><td>${perfil}</td><td>${sit}</td><td class="muted">${quando}</td><td style="text-align:right;white-space:nowrap">${acoes}</td></tr>`;
+    }).join('');
+    $('t-usuarios').querySelectorAll('[data-papel]').forEach(sel=>sel.onchange=async()=>{
+      const {error}=await sb.from('membros').update({papel:sel.value}).eq('empresa_id',atual.id).eq('user_id',sel.dataset.papel);
+      if(error){msg('m-usuarios',Conta.traduz(error),'err');}else msg('m-usuarios','Perfil alterado.','ok');
+      mostrarUsuarios(admin);
+    });
+    $('t-usuarios').querySelectorAll('[data-remover]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.remover;
+      if(confirmar!==id){confirmar=id;mostrarUsuarios(admin);setTimeout(()=>{if(confirmar===id){confirmar=null;mostrarUsuarios(admin)}},5000);return}
+      confirmar=null;
+      const {error}=await sb.from('membros').delete().eq('empresa_id',atual.id).eq('user_id',id);
+      if(error)msg('m-usuarios',Conta.traduz(error),'err');else msg('m-usuarios','Usuário removido da empresa.','ok');
+      mostrarUsuarios(admin);
+    });
+    $('t-usuarios').querySelectorAll('[data-reenviar]').forEach(b=>b.onclick=()=>convidar(b.dataset.reenviar,null,null,'reenviar',b));
+  }
+  async function convidar(email,nome,papel,acao,botao){
+    botao.disabled=true;
+    const {data,error}=await sb.functions.invoke('usuarios',{body:{acao,empresa_id:atual.id,email,nome,papel}});
+    botao.disabled=false;
+    if(error){let t=error.message;try{const j=await error.context.json();t=j.erro||t}catch(_){}msg('m-usuarios',t,'err');return false}
+    msg('m-usuarios', acao==='reenviar'?'E-mail reenviado para '+email+'.' : data.email_enviado?'Convite enviado para '+email+'.':email+' já tinha conta e foi adicionado à empresa. A empresa aparece para essa pessoa no próximo acesso.','ok');
+    mostrarUsuarios(true);return true;
+  }
+  $('f-convite').onsubmit=async e=>{
+    e.preventDefault();const email=$('i-email').value.trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg('m-usuarios','Informe um e-mail válido.','err');return}
+    if(await convidar(email,$('i-nome').value.trim()||null,$('i-papel').value,'convidar',$('b-convidar'))){$('i-email').value='';$('i-nome').value='';}
+  };
+  $('f-dados').onsubmit=async e=>{
+    e.preventDefault();const nome=$('d-nome').value.trim(),cnpj=$('d-cnpj').value.replace(/\D/g,'')||null;
+    if(nome.length<2){msg('m-dados','Informe o nome.','err');return}
+    if(cnpj&&cnpj.length!==14){msg('m-dados','O CNPJ precisa ter 14 números.','err');return}
+    const {error}=await sb.from('empresas').update({nome,cnpj}).eq('id',atual.id);
+    if(error){msg('m-dados',Conta.traduz(error),'err');return}
+    msg('m-dados','Dados salvos.','ok');await carregar();
+  };
+  $('s-empresa').onchange=e=>{Conta.escolherEmpresa(e.target.value);carregar()};
+  $('f-nova').onsubmit=async e=>{
+    e.preventDefault();const nome=$('n-nome').value.trim(),cnpj=$('n-cnpj').value.replace(/\D/g,'')||null;
+    if(nome.length<2){msg('m-nova','Informe o nome da empresa.','err');return}
+    if(cnpj&&cnpj.length!==14){msg('m-nova','O CNPJ precisa ter 14 números.','err');return}
+    const {data,error}=await sb.rpc('criar_empresa',{p_nome:nome,p_cnpj:cnpj});
+    if(error){msg('m-nova',Conta.traduz(error),'err');return}
+    Conta.escolherEmpresa(data);$('n-nome').value='';$('n-cnpj').value='';msg('m-nova','Empresa criada.','ok');await carregar();
+  };
+  let confirmarEmp=null;
+  function mostrarMaster(){
+    const q=$('m-busca').value.trim().toLowerCase();
+    const l=lista.filter(e=>!q||e.nome.toLowerCase().includes(q)||(e.cnpj||'').includes(q.replace(/\D/g,'')||'§'));
+    $('t-master').innerHTML=l.map(e=>`<tr><td><b>${esc(e.nome)}</b></td><td class="muted">${esc(fmtCnpj(e.cnpj))||'—'}</td><td>${e.membros}</td><td><span class="chip ${e.papel==='master'?'a':'n'}">${PAPEL[e.papel]}</span></td><td style="text-align:right;white-space:nowrap"><button class="btn ghost pequeno" type="button" data-acessar="${e.id}">${atual&&atual.id===e.id?'Aberta':'Acessar'}</button> <button class="btn perigo pequeno" type="button" data-excluir="${e.id}">${confirmarEmp===e.id?'Confirmar exclusão':'Excluir'}</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhuma empresa.</td></tr>';
+    $('t-master').querySelectorAll('[data-acessar]').forEach(b=>b.onclick=()=>{Conta.escolherEmpresa(b.dataset.acessar);carregar();scrollTo({top:0})});
+    $('t-master').querySelectorAll('[data-excluir]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.excluir;
+      if(confirmarEmp!==id){confirmarEmp=id;mostrarMaster();setTimeout(()=>{if(confirmarEmp===id){confirmarEmp=null;mostrarMaster()}},5000);return}
+      confirmarEmp=null;
+      const {error}=await sb.from('empresas').delete().eq('id',id);
+      if(error)msg('m-geral',Conta.traduz(error),'err');else msg('m-geral','Empresa excluída com todos os dados e vínculos.','ok');
+      carregar();
+    });
+  }
+  $('m-busca').oninput=mostrarMaster;
+  await carregar();
+})();
+</script>
+</body>
+</html>

@@ -134,6 +134,9 @@ td.num,th.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 h1{font-stretch:112%;letter-spacing:-.015em}
 .foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);max-width:none}
 </style>
+<script src="../app/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../app/conta.js"></script>
 </head>
 <body>
 
@@ -246,7 +249,7 @@ h1{font-stretch:112%;letter-spacing:-.015em}
           <h2 id="h-par">Premissas</h2>
           <div class="btnrow"><button class="ghost" id="btnReset" type="button">Restaurar valores-padrão</button></div>
         </div>
-        <p class="note">Os valores iniciais combinam dados públicos de alíquotas (alíquotas de 2026, estimativa do Comitê Gestor). Divisão de receita por estado, mix de categorias, perfil de fornecedores e despesas são estimativas para substituir pelos números internos. As alterações ficam salvas neste navegador.</p>
+        <p class="note">Os valores iniciais combinam dados públicos (alíquotas de 2026, estimativa do Comitê Gestor). Divisão de receita por estado, mix de categorias, perfil de fornecedores e despesas são estimativas para substituir pelos números internos. <span class="so-local">As alterações ficam salvas neste navegador.</span><span class="so-nuvem">As alterações ficam salvas na conta da empresa e valem para todos os usuários dela.</span></p>
         <div class="tabs" role="tablist" id="ptabs"></div>
         <div id="ppanel"></div>
       </section>
@@ -400,7 +403,7 @@ const KEY='contrapeso-sim-v1';
 const clone=o=>JSON.parse(JSON.stringify(o));
 let S;
 try{const raw=localStorage.getItem(KEY); S=raw?JSON.parse(raw):clone(DEFAULTS); if(!S.cats||!S.ufs||!S.plan) S=clone(DEFAULTS);}catch(e){S=clone(DEFAULTS)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){if(window.CONTA_ATIVA){CONTA_ATIVA.salvar(S);return}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let YEAR=2033;
 
 /* ---------- formatação ---------- */
@@ -625,7 +628,7 @@ function renderParams(){
   const fs=el('p_fund'); if(fs) fs.onchange=()=>{S.fund=fs.value==='1';schedule()};
 }
 
-el('btnReset').onclick=()=>{S=clone(DEFAULTS);bindLevers();renderParams();renderAll()};
+el('btnReset').onclick=()=>{S=clone(DEFAULTS);save();bindLevers();renderParams();renderAll()};
 el('btnCopy').onclick=()=>{
   const p=R.plan[YEAR];
   const lines=[['UF','Receita bruta R$ mi','ICMS modal %','Δ preço %','Base R$ mi','Plano R$ mi','% receita'].join('\t')];
@@ -642,7 +645,16 @@ function renderAll(){computeAll();renderYears();renderKPIs();renderChart();rende
   // atualiza só os rodapés de soma sem perder o foco
   if(TAB==='uf'||TAB==='cat'){const a=document.activeElement&&document.activeElement.id;renderParams();if(a&&el(a)){el(a).focus();}}
 }
-bindLevers();renderParams();renderAll();
+(async function iniciar(){
+  const ok=d=>d&&d.cats&&d.ufs&&d.plan&&d.base;
+  const c=window.Conta?await Conta.iniciar('simulador'):{modo:'local'};
+  if(c.modo==='nuvem'){
+    S=ok(c.conteudo)?c.conteudo:clone(DEFAULTS);
+    window.CONTA_ATIVA=c;
+    c.aoRecarregar=d=>{S=ok(d)?d:clone(DEFAULTS);bindLevers();renderParams();renderAll();};
+  }
+  bindLevers();renderParams();renderAll();
+})();
 </script>
 
 </body>

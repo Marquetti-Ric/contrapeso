@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Entrar · Contrapeso</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../app/base.css">
+<script src="../app/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../app/conta.js"></script>
+</head>
+<body>
+<div class="wrap estreita">
+  <div class="brandbar"><a class="brand" href="../"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a></div>
+
+  <section id="v-off" class="card" hidden>
+    <h1>Login ainda não ativado</h1>
+    <p class="muted">Este endereço ainda não está ligado ao servidor de contas. As ferramentas funcionam normalmente, com os dados guardados só no seu navegador.</p>
+    <div class="acoes"><a class="btn" href="../simulador/">Abrir o Simulador</a><a class="btn ghost" href="../negociador/">Abrir o Negociador</a></div>
+  </section>
+
+  <section id="v-acesso" class="card" hidden>
+    <div>
+      <h1 id="t-acesso">Entre na sua empresa</h1>
+      <p class="muted" style="margin-top:6px">Cada empresa vê só os próprios dados.</p>
+    </div>
+    <div class="abas" role="tablist">
+      <button type="button" role="tab" id="aba-entrar" aria-selected="true" aria-controls="f-entrar">Entrar</button>
+      <button type="button" role="tab" id="aba-criar" aria-selected="false" aria-controls="f-criar">Criar empresa</button>
+    </div>
+    <div class="msg" id="m-acesso" role="status"></div>
+
+    <form id="f-entrar" novalidate>
+      <div class="campo"><label for="e-email">E-mail</label><input id="e-email" type="email" autocomplete="email" required></div>
+      <div class="campo"><label for="e-senha">Senha</label><input id="e-senha" type="password" autocomplete="current-password" required></div>
+      <button class="btn" type="submit" id="b-entrar">Entrar</button>
+      <button class="link" type="button" id="b-esqueci">Esqueci minha senha</button>
+    </form>
+
+    <form id="f-criar" novalidate hidden>
+      <p class="muted" style="font-size:14px">Crie a conta da sua empresa. Você será o administrador e poderá convidar as outras pessoas.</p>
+      <div class="campo"><label for="c-empresa">Nome da empresa</label><input id="c-empresa" type="text" autocomplete="organization" required maxlength="120"></div>
+      <div class="campo"><label for="c-cnpj">CNPJ <span class="muted">(opcional)</span></label><input id="c-cnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18"></div>
+      <div class="campo"><label for="c-nome">Seu nome</label><input id="c-nome" type="text" autocomplete="name" required maxlength="120"></div>
+      <div class="campo"><label for="c-email">Seu e-mail</label><input id="c-email" type="email" autocomplete="email" required></div>
+      <div class="linha">
+        <div class="campo"><label for="c-senha">Senha</label><input id="c-senha" type="password" autocomplete="new-password" required><small>Mínimo de 8 caracteres, com letras e números.</small></div>
+        <div class="campo"><label for="c-senha2">Repita a senha</label><input id="c-senha2" type="password" autocomplete="new-password" required></div>
+      </div>
+      <button class="btn" type="submit" id="b-criar">Criar empresa</button>
+    </form>
+
+    <form id="f-esqueci" novalidate hidden>
+      <p class="muted" style="font-size:14px">Informe o seu e-mail. Enviaremos um link para você criar uma senha nova.</p>
+      <div class="campo"><label for="r-email">E-mail</label><input id="r-email" type="email" autocomplete="email" required></div>
+      <button class="btn" type="submit" id="b-esqueci-ok">Enviar link</button>
+      <button class="link" type="button" id="b-voltar">Voltar para entrar</button>
+    </form>
+  </section>
+
+  <section id="v-senha" class="card" hidden>
+    <div><h1 id="t-senha">Defina a sua senha</h1><p class="muted" style="margin-top:6px" id="s-senha">Você vai usar esta senha para entrar no Contrapeso.</p></div>
+    <div class="msg" id="m-senha" role="status"></div>
+    <form id="f-senha" novalidate>
+      <div class="campo"><label for="n-nome">Seu nome</label><input id="n-nome" type="text" autocomplete="name" maxlength="120"></div>
+      <div class="campo"><label for="n-senha">Nova senha</label><input id="n-senha" type="password" autocomplete="new-password" required><small>Mínimo de 8 caracteres, com letras e números.</small></div>
+      <div class="campo"><label for="n-senha2">Repita a senha</label><input id="n-senha2" type="password" autocomplete="new-password" required></div>
+      <button class="btn" type="submit" id="b-senha">Salvar senha e continuar</button>
+    </form>
+  </section>
+
+  <section id="v-aviso" class="card" hidden>
+    <h1 id="t-aviso"></h1>
+    <p id="p-aviso" class="muted"></p>
+    <div class="acoes"><button class="btn ghost" type="button" id="b-aviso">Voltar para entrar</button></div>
+  </section>
+
+  <footer class="foot">Ferramenta independente de estimativa sobre a reforma tributária do consumo. Não é parecer fiscal.</footer>
+</div>
+<script>
+(async function(){
+  const $=id=>document.getElementById(id);
+  const P=new URLSearchParams(location.search);
+  const fluxo=P.get('fluxo');
+  const volta=P.get('volta');
+  const destino=()=> (volta && volta.startsWith('/') && !volta.startsWith('//')) ? volta : Conta.BASE+'empresa/';
+  const views=['v-off','v-acesso','v-senha','v-aviso'];
+  const mostrar=v=>views.forEach(x=>$(x).hidden=x!==v);
+  const msg=(id,t,c)=>{const e=$(id);e.textContent=t||'';e.className='msg '+(c||'');};
+  const senhaOk=s=>s.length>=8 && /[a-zA-Z]/.test(s) && /\d/.test(s);
+  const ocupado=(b,on,txt)=>{b.disabled=on;if(txt){b.dataset.t=b.dataset.t||b.textContent;b.textContent=on?txt:b.dataset.t}};
+
+  if(!Conta.ATIVO){mostrar('v-off');return}
+  const sb=Conta.sb();
+
+  function aba(qual){
+    $('aba-entrar').setAttribute('aria-selected',qual==='entrar');$('aba-criar').setAttribute('aria-selected',qual==='criar');
+    $('f-entrar').hidden=qual!=='entrar';$('f-criar').hidden=qual!=='criar';$('f-esqueci').hidden=qual!=='esqueci';
+    $('t-acesso').textContent=qual==='criar'?'Crie a conta da sua empresa':qual==='esqueci'?'Recuperar o acesso':'Entre na sua empresa';
+    msg('m-acesso','');
+  }
+  $('aba-entrar').onclick=()=>aba('entrar');$('aba-criar').onclick=()=>aba('criar');
+  $('b-esqueci').onclick=()=>{$('r-email').value=$('e-email').value;aba('esqueci')};
+  $('b-voltar').onclick=()=>aba('entrar');
+  $('b-aviso').onclick=()=>{history.replaceState(null,'',location.pathname);mostrar('v-acesso');aba('entrar')};
+  if(P.get('aba')==='criar') aba('criar');
+
+  // Convite e recuperação de senha chegam com a sessão no endereço
+  let recuperacao=false;
+  sb.auth.onAuthStateChange((ev)=>{ if(ev==='PASSWORD_RECOVERY'){recuperacao=true;abrirSenha('senha')} });
+  function abrirSenha(tipo){
+    mostrar('v-senha');
+    $('t-senha').textContent= tipo==='convite' ? 'Bem-vindo ao Contrapeso' : 'Crie uma senha nova';
+    $('s-senha').textContent= tipo==='convite' ? 'Você foi convidado para uma empresa. Defina a sua senha para entrar.' : 'Defina a nova senha da sua conta.';
+    $('n-nome').closest('.campo').hidden = tipo!=='convite';
+  }
+  const hash=new URLSearchParams(location.hash.slice(1));
+  if(hash.get('error_description')){
+    mostrar('v-aviso');$('t-aviso').textContent='Link inválido ou expirado';
+    $('p-aviso').textContent='Peça um novo convite ao administrador da empresa ou use "Esqueci minha senha".';return;
+  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(session && (fluxo==='convite'||fluxo==='senha'||hash.get('type')==='invite'||hash.get('type')==='recovery')){ abrirSenha(fluxo==='convite'||hash.get('type')==='invite'?'convite':'senha'); }
+  else if(fluxo==='confirmado'){ if(session){location.replace(destino());return} mostrar('v-aviso');$('t-aviso').textContent='E-mail confirmado';$('p-aviso').textContent='Agora é só entrar com o seu e-mail e senha.'; }
+  else if(session && !recuperacao){ location.replace(destino()); return; }
+  else mostrar('v-acesso');
+
+  $('f-entrar').onsubmit=async e=>{
+    e.preventDefault();const b=$('b-entrar');
+    const email=$('e-email').value.trim(), senha=$('e-senha').value;
+    if(!email||!senha){msg('m-acesso','Informe e-mail e senha.','err');return}
+    ocupado(b,true,'Entrando…');
+    const {error}=await sb.auth.signInWithPassword({email,password:senha});
+    ocupado(b,false);
+    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
+    location.replace(destino());
+  };
+  $('f-criar').onsubmit=async e=>{
+    e.preventDefault();const b=$('b-criar');
+    const empresa=$('c-empresa').value.trim(), cnpj=$('c-cnpj').value.replace(/\D/g,''), nome=$('c-nome').value.trim(), email=$('c-email').value.trim(), s1=$('c-senha').value, s2=$('c-senha2').value;
+    if(empresa.length<2){msg('m-acesso','Informe o nome da empresa.','err');return}
+    if(cnpj && cnpj.length!==14){msg('m-acesso','O CNPJ precisa ter 14 números. Se preferir, deixe em branco.','err');return}
+    if(!nome){msg('m-acesso','Informe o seu nome.','err');return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg('m-acesso','E-mail inválido.','err');return}
+    if(!senhaOk(s1)){msg('m-acesso','A senha precisa ter pelo menos 8 caracteres, com letras e números.','err');return}
+    if(s1!==s2){msg('m-acesso','As duas senhas não são iguais.','err');return}
+    ocupado(b,true,'Criando…');
+    const {data,error}=await sb.auth.signUp({email,password:s1,options:{data:{nome,empresa_nome:empresa,empresa_cnpj:cnpj||null},emailRedirectTo:Conta.BASE+'entrar/?fluxo=confirmado'}});
+    ocupado(b,false);
+    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
+    if(data.user && Array.isArray(data.user.identities) && data.user.identities.length===0){msg('m-acesso',Conta.traduz('already registered'),'err');return}
+    if(data.session){location.replace(Conta.BASE+'empresa/');return}
+    mostrar('v-aviso');$('t-aviso').textContent='Confirme o seu e-mail';
+    $('p-aviso').textContent='Enviamos um link para '+email+'. Abra o e-mail e clique no link para ativar a conta da '+empresa+'. Se não aparecer em alguns minutos, olhe a caixa de spam.';
+  };
+  $('f-esqueci').onsubmit=async e=>{
+    e.preventDefault();const b=$('b-esqueci-ok');const email=$('r-email').value.trim();
+    if(!email){msg('m-acesso','Informe o e-mail.','err');return}
+    ocupado(b,true,'Enviando…');
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:Conta.BASE+'entrar/?fluxo=senha'});
+    ocupado(b,false);
+    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
+    msg('m-acesso','Se houver uma conta com esse e-mail, o link chega em alguns minutos.','ok');
+  };
+  $('f-senha').onsubmit=async e=>{
+    e.preventDefault();const b=$('b-senha');const s1=$('n-senha').value,s2=$('n-senha2').value,nome=$('n-nome').value.trim();
+    if(!senhaOk(s1)){msg('m-senha','A senha precisa ter pelo menos 8 caracteres, com letras e números.','err');return}
+    if(s1!==s2){msg('m-senha','As duas senhas não são iguais.','err');return}
+    ocupado(b,true,'Salvando…');
+    const upd={password:s1}; if(nome) upd.data={nome};
+    const {error}=await sb.auth.updateUser(upd);
+    ocupado(b,false);
+    if(error){msg('m-senha',Conta.traduz(error),'err');return}
+    location.replace(destino());
+  };
+})();
+</script>
+</body>
+</html>

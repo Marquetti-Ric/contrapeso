@@ -10,12 +10,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: marca, tese em uma frase, duas ferramentas lado a lado, cronograma da reforma como faixa, rodapé. */
-:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
-<title>Contrapeso Simulador</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
-/* Layout: painel de alavancas fixo à esquerda + resultados à direita; parâmetros editáveis abaixo, em abas. */
 :root{
   --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E9EEEC; --fg:#13201B; --muted:#5A6862; --line:#D3DCD8;
   --accent:#AE4E17; --accent-soft:#F6E5D9;
@@ -37,7 +31,6 @@
   --gain:#5BC594; --gain-soft:#163426; --loss:#F27C8E; --loss-soft:#3B1820; --warn:#E3B04E; --warn-soft:#3A2D12;
   --k1:#93A6FF; --k2:#5269C4; --k3:#E59253; --k4:#5BC594; --k5:#B48CE8; --k6:#D6BB4E; --k7:#8E9994;
   color-scheme:dark }
-
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55}
 .wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:grid;gap:48px}
@@ -66,6 +59,15 @@ h1 em{font-style:normal;color:var(--accent)}
 .manual p{margin:4px 0 0;max-width:60ch}
 .dl{font-weight:600;background:var(--accent);color:var(--surface);text-decoration:none;padding:10px 16px;border-radius:8px;white-space:nowrap}
 .dl:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.entrar{font-weight:600;color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:8px 16px;background:var(--surface)}
+.entrar:hover{border-color:var(--accent)}
+.cadastro{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between;background:var(--fg);color:var(--bg);border-radius:12px;padding:24px}
+.cadastro h2{font-family:var(--f-display);font-stretch:112%;font-size:24px;margin:0}
+.cadastro p{margin:6px 0 0;max-width:56ch;opacity:.8}
+.acoes-l{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cadastro .sec{color:var(--bg);font-weight:600}
+.entrar:focus-visible,.cadastro a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 footer{border-top:1px solid var(--line);padding-top:16px;font-size:13px;color:var(--muted);display:grid;gap:4px}
 footer a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -73,11 +75,11 @@ footer a{color:var(--accent)}
 </head>
 <body>
 <div class="wrap">
-  <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a>
+  <div class="topo"><a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="currentColor"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="var(--accent)"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="currentColor"/></svg><span class="word">Contrapeso</span></a><a class="entrar" href="entrar/">Entrar</a></div>
   <section>
     <div class="eyebrow">Reforma tributária do consumo · varejo</div>
     <h1>Faça a conta antes do fornecedor <em>e antes do mercado.</em></h1>
-    <p class="lede">Duas ferramentas gratuitas para medir o impacto da CBS, do IBS e do Imposto Seletivo na sua rede e levar a conta pronta para a mesa de negociação. Rodam no navegador: seus dados não saem do seu computador.</p>
+    <p class="lede">Duas ferramentas gratuitas para medir o impacto da CBS, do IBS e do Imposto Seletivo na sua rede e levar a conta pronta para a mesa de negociação. Cada empresa tem o seu acesso, com usuários e perfis próprios, e uma empresa nunca vê os dados da outra.</p>
   </section>
   <section class="tools" aria-label="Ferramentas">
     <a class="tool" href="simulador/">
@@ -95,6 +97,7 @@ footer a{color:var(--accent)}
       <span class="go">Abrir o Negociador →</span>
     </a>
   </section>
+  <section class="cadastro" aria-label="Criar conta"><div><h2>Comece em dois minutos</h2><p>Crie a conta da sua empresa, convide a equipe por e-mail e defina quem administra, quem edita e quem só consulta.</p></div><div class="acoes-l"><a class="dl" href="entrar/?aba=criar">Criar a conta da empresa</a><a class="sec" href="entrar/">Já tenho conta</a></div></section>
   <section class="manual" aria-label="Manual">
     <div><div class="eyebrow">Primeira vez aqui?</div><p>O manual mostra, tela por tela, como usar as duas ferramentas sozinho, do primeiro arquivo à reunião com o fornecedor.</p></div>
     <a class="dl" href="manual/contrapeso-manual.pdf">Baixar o manual em PDF</a>

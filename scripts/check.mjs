@@ -12,7 +12,9 @@ const err = (m) => { console.error('ERRO:', m); fail++; };
 
 for (const p of pages) {
   const h = readFileSync(p, 'utf8');
-  if (!/<title>[^<]+<\/title>/.test(h)) err(`${p}: sem <title>`);
+  const cabeca = h.slice(0, h.indexOf('</head>') + 1 || undefined);
+  const titulos = (cabeca.match(/<title>/g) || []).length;
+  if (titulos !== 1) err(`${p}: deve ter exatamente um <title> (tem ${titulos})`);
   if (/�/.test(h)) err(`${p}: caractere inválido`);
   if (/\bGPA\b|Pão de Açúcar/.test(h)) err(`${p}: menção a marca de terceiros`);
   for (const m of h.matchAll(/<script>([\s\S]*?)<\/script>/g)) {

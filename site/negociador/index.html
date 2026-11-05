@@ -139,6 +139,9 @@ pre.code{margin:0;font-family:var(--f-mono);font-size:12px;background:var(--sunk
 h1{font-stretch:112%;letter-spacing:-.015em}
 .foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);max-width:none}
 </style>
+<script src="../app/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../app/conta.js"></script>
 </head>
 <body>
 
@@ -204,7 +207,7 @@ h1{font-stretch:112%;letter-spacing:-.015em}
       </div>
       <label class="drop" id="drop" for="f_in">
         <span class="big">Solte os arquivos aqui ou clique para escolher</span>
-        <span class="muted">Vários arquivos de uma vez. Os dados ficam só neste navegador.</span>
+        <span class="muted">Vários arquivos de uma vez. <span class="so-local">Os dados ficam só neste navegador.</span><span class="so-nuvem">Os dados ficam salvos na conta da empresa.</span></span>
         <span class="fmt"><span class="chip a">XML de NF-e</span><span class="chip a">Excel .xlsx / .xls</span><span class="chip a">CSV</span><span class="chip a">TXT delimitado</span><span class="chip a">JSON</span></span>
       </label>
       <input type="file" id="f_in" multiple accept=".xml,.xlsx,.xls,.csv,.txt,.json,.tsv" hidden>
@@ -373,7 +376,7 @@ const KEY='contrapeso-negociador-v1';
 const clone=o=>JSON.parse(JSON.stringify(o));
 let ST={items:[],P:clone(DEFAULT_P),negPct:{},log:[],ui:{year:2027,mode:'preco',forn:'',q:'',uf:'',tab:'neg'},open:{}};
 try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r); if(o&&Array.isArray(o.items)) ST=Object.assign(ST,o); ST.P=Object.assign(clone(DEFAULT_P),ST.P||{});}}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){toast('t_imp','Não foi possível salvar neste navegador (limite de armazenamento). Os dados continuam na tela até fechar.', 'err')}}
+function save(){if(window.CONTA_ATIVA){CONTA_ATIVA.salvar({items:ST.items,P:ST.P,negPct:ST.negPct,log:ST.log,sample:!!ST.sample});try{localStorage.setItem(KEY+'-ui',JSON.stringify({ui:ST.ui,open:ST.open,api:ST.api}))}catch(e){}return}try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){toast('t_imp','Não foi possível salvar neste navegador (limite de armazenamento). Os dados continuam na tela até fechar.', 'err')}}
 let SEL=null;
 
 /* ================= UTIL ================= */
@@ -984,8 +987,17 @@ drop.addEventListener('drop',e=>handleFiles(Array.from(e.dataTransfer.files||[])
 if(ST.api){$('a_url').value=ST.api.url||'';$('a_hn').value=ST.api.hn||'';$('a_path').value=ST.api.path||''}
 
 function renderAll(){renderTabs();renderControls();renderTree();renderLog();renderParams()}
-if(!ST.items.length && !ST.log.length) loadSample();
-renderContract();renderAll();
+(async function iniciar(){
+  const c=window.Conta?await Conta.iniciar('negociador'):{modo:'local'};
+  if(c.modo==='nuvem'){
+    const aplicar=d=>{d=d||{};ST.items=Array.isArray(d.items)?d.items:[];ST.P=Object.assign(clone(DEFAULT_P),d.P||{});ST.negPct=d.negPct||{};ST.log=Array.isArray(d.log)?d.log:[];ST.sample=!!d.sample;SEL=null;};
+    try{const u=JSON.parse(localStorage.getItem(KEY+'-ui')||'{}');if(u.ui)ST.ui=Object.assign(ST.ui,u.ui);ST.open=u.open||{};if(u.api)ST.api=u.api;}catch(e){}
+    aplicar(c.conteudo);
+    window.CONTA_ATIVA=c;
+    c.aoRecarregar=d=>{aplicar(d);renderAll();};
+  } else if(!ST.items.length && !ST.log.length) loadSample();
+  renderContract();renderAll();
+})();
 </script>
 
 </body>

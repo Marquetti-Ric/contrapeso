@@ -1,0 +1,5 @@
+# Configuração usada pelo Supabase CLI no GitHub Actions (link, db push e functions deploy).
+project_id = "contrapeso"
+
+[functions.usuarios]
+verify_jwt = true
