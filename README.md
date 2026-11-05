@@ -31,3 +31,7 @@ Veja a aba **Integração e API** da página: contrato de dados, busca por URL R
 ## Aviso
 
 Estimativas para apoio à decisão. Não é parecer fiscal. Alíquotas de referência baseadas na estimativa do Comitê Gestor do IBS (Res. CGIBS 14/2026), sujeitas à definição do Senado.
+
+## Manual
+
+O manual em PDF fica em `site/manual/contrapeso-manual.pdf` e é publicado junto com o site. As fontes do manual (texto, modelo e scripts de captura de tela e geração do PDF) estão em `docs/manual/`.

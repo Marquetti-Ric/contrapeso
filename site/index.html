@@ -62,6 +62,10 @@ h1 em{font-style:normal;color:var(--accent)}
 .tl div{padding:12px 14px 0 0;display:grid;gap:2px}
 .tl b{font-family:var(--f-mono);font-weight:500;font-size:14px}
 .tl span{font-size:14px;color:var(--muted)}
+.manual{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:18px 22px;background:var(--accent-soft)}
+.manual p{margin:4px 0 0;max-width:60ch}
+.dl{font-weight:600;background:var(--accent);color:var(--surface);text-decoration:none;padding:10px 16px;border-radius:8px;white-space:nowrap}
+.dl:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 footer{border-top:1px solid var(--line);padding-top:16px;font-size:13px;color:var(--muted);display:grid;gap:4px}
 footer a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -90,6 +94,10 @@ footer a{color:var(--accent)}
       <ul><li>Preço neutro, preço máximo e margem por SKU</li><li>Importa XML de NF-e, Excel, CSV, TXT, JSON e API</li><li>Memória de cálculo para enviar ao fornecedor</li></ul>
       <span class="go">Abrir o Negociador →</span>
     </a>
+  </section>
+  <section class="manual" aria-label="Manual">
+    <div><div class="eyebrow">Primeira vez aqui?</div><p>O manual mostra, tela por tela, como usar as duas ferramentas sozinho, do primeiro arquivo à reunião com o fornecedor.</p></div>
+    <a class="dl" href="manual/contrapeso-manual.pdf">Baixar o manual em PDF</a>
   </section>
   <section aria-label="Cronograma da reforma">
     <div class="eyebrow" style="margin-bottom:10px">Cronograma (LC 214/2025)</div>

@@ -1,0 +1,362 @@
+<section class="cover">
+  <div class="brand">{{LOGO}}<span>Contrapeso</span></div>
+  <svg class="bigmark" viewBox="0 0 32 32" aria-hidden="true"><g transform="rotate(-9 16 12)"><rect x="2" y="10.5" width="28" height="3" rx="1.5" fill="#F2F3F1" fill-opacity=".08"/><rect x="3" y="3.5" width="7" height="7" rx="1.2" fill="#AE4E17"/><circle cx="26" cy="8.3" r="2.2" fill="none" stroke="#F2F3F1" stroke-opacity=".12" stroke-width=".6"/></g><path d="M16 13.5 L22.5 28.5 H9.5 Z" fill="#F2F3F1" fill-opacity=".08"/></svg>
+  <div style="align-self:end">
+    <h1>Manual<br>de uso<br><em>passo a passo.</em></h1>
+    <p class="sub">Simulador e Negociador da reforma tributária do consumo (CBS, IBS e Imposto Seletivo) para o varejo. Escrito para quem nunca abriu as ferramentas.</p>
+  </div>
+  <div class="meta"><span>marquetti-ric.github.io/contrapeso</span><span>Versão de novembro de 2026</span></div>
+</section>
+
+<section>
+  <span class="eyebrow">Sumário</span>
+  <h2 style="margin-top:2mm">O que tem neste manual</h2>
+  <ol class="toc">
+    <li><span class="n">1</span><a href="#c1">Antes de começar<small>O que é, o que você precisa e onde ficam os seus dados</small></a></li>
+    <li><span class="n">2</span><a href="#c2">Página inicial<small>Como entrar em cada ferramenta</small></a></li>
+    <li><span class="n">3</span><a href="#c3">Simulador<small>Impacto da reforma no resultado da rede, ano a ano</small></a></li>
+    <li><span class="n">4</span><a href="#c4">Negociador: carregar os dados<small>XML de nota fiscal, Excel, CSV, TXT e JSON</small></a></li>
+    <li><span class="n">5</span><a href="#c5">Negociador: negociar e precificar<small>Mesa de negociação, memória de cálculo e exportações</small></a></li>
+    <li><span class="n">6</span><a href="#c6">Integração por API<small>Para a equipe de TI</small></a></li>
+    <li><span class="n">7</span><a href="#c7">Roteiro prático de negociação<small>Do arquivo à reunião com o fornecedor, em oito passos</small></a></li>
+    <li><span class="n">8</span><a href="#c8">Glossário<small>Os termos que aparecem nas telas</small></a></li>
+    <li><span class="n">9</span><a href="#c9">Problemas comuns<small>O que fazer quando algo não sai como esperado</small></a></li>
+  </ol>
+  <div class="note"><b>Aviso importante</b><p>O Contrapeso faz estimativas para apoiar decisões. Não é parecer fiscal. As alíquotas de referência usadas são estimativas do Comitê Gestor do IBS (Resolução CGIBS nº 14/2026) e ainda serão fixadas pelo Senado. Valide os números com a sua equipe tributária antes de usá-los em contrato ou orçamento.</p></div>
+</section>
+
+<!-- 1 -->
+<section class="chapter" id="c1">
+  <span class="eyebrow">Capítulo 1</span>
+  <h2>Antes de começar</h2>
+  <p class="lead">O Contrapeso tem duas ferramentas. O Simulador mostra quanto a reforma muda o resultado da empresa. O Negociador mostra, item a item, que preço cada fornecedor deveria cobrar depois da reforma.</p>
+
+  <h3>Qual ferramenta usar</h3>
+  <table>
+    <thead><tr><th>Se você quer…</th><th>Use</th><th>Quem costuma usar</th></tr></thead>
+    <tbody>
+      <tr><td class="wrap">Saber o impacto no EBITDA de 2026 a 2033 e o que fazer para reduzi-lo</td><td>Simulador</td><td>Diretoria, finanças, planejamento, tributário</td></tr>
+      <tr><td class="wrap">Saber se o fornecedor deve baixar o preço, quanto, e qual preço de venda praticar</td><td>Negociador</td><td>Compras, gestores de categoria, precificação</td></tr>
+      <tr><td class="wrap">Levar dados do ERP para a análise sem digitar</td><td>Negociador, aba Integração</td><td>TI</td></tr>
+    </tbody>
+  </table>
+
+  <h3>O que você precisa</h3>
+  <ul>
+    <li><b>Um navegador atualizado:</b> Chrome, Edge, Safari ou Firefox. Funciona no computador e no celular, mas as tabelas são mais confortáveis numa tela grande.</li>
+    <li><b>O endereço:</b> <code>marquetti-ric.github.io/contrapeso</code>.</li>
+    <li>Não é preciso instalar nada.</li>
+  </ul>
+
+  <h3>Onde ficam os seus dados</h3>
+  <p>Tudo o que você importa ou altera fica guardado <b>só no navegador do seu computador</b>. Nada é enviado para servidores. Isso tem quatro consequências práticas:</p>
+  <ul>
+    <li>Se você abrir o Contrapeso em outro computador ou em outro navegador, ele vai abrir vazio, com os dados de exemplo.</li>
+    <li>Se você limpar os dados de navegação do site, as suas importações e ajustes são apagados.</li>
+    <li>Na janela anônima, nada fica salvo depois que ela é fechada.</li>
+    <li>Para compartilhar uma análise com um colega, use as exportações em Excel (capítulo 5).</li>
+  </ul>
+
+  <div class="note"><b>Dados de exemplo</b><p>Na primeira vez, as duas ferramentas abrem com dados fictícios para você ver como funcionam. No Simulador, troque-os na seção Premissas. No Negociador, importe os seus arquivos no modo "Substituir todos os itens" ou use o botão "Apagar todos os itens".</p></div>
+
+
+</section>
+
+<!-- 2 -->
+<section class="chapter" id="c2">
+  <span class="eyebrow">Capítulo 2</span>
+  <h2>Página inicial</h2>
+  <p class="lead">Ao abrir o endereço, você chega à página inicial. Dela você entra em qualquer uma das ferramentas.</p>
+  {{fig:landing|Página inicial do Contrapeso|Abre o Simulador.;;Abre o Negociador.}}
+  <p>Dentro de cada ferramenta, o seletor no canto superior direito (<b>Simulador | Negociador</b>) leva de uma para a outra. O símbolo do Contrapeso, no canto superior esquerdo, volta para a página inicial.</p>
+  <h3>O cronograma da reforma em uma tabela</h3>
+  <table>
+    <thead><tr><th>Ano</th><th>O que acontece</th></tr></thead>
+    <tbody>
+      <tr><td>2026</td><td>Fase de teste: CBS de 0,9% e IBS de 0,1% aparecem na nota, mas são compensados. Sem efeito no caixa.</td></tr>
+      <tr><td>2027 e 2028</td><td>A CBS entra com alíquota cheia. PIS e Cofins acabam. O IPI vai a zero (exceto Zona Franca). Começa o Imposto Seletivo. O ICMS continua igual.</td></tr>
+      <tr><td>2029 a 2032</td><td>O ICMS cai para 90%, 80%, 70% e 60% da alíquota atual. O IBS sobe na mesma proporção.</td></tr>
+      <tr><td>2033</td><td>ICMS e ISS deixam de existir. IBS e CBS passam a valer integralmente.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 3 -->
+<section class="chapter" id="c3">
+  <span class="eyebrow">Capítulo 3</span>
+  <h2>Simulador</h2>
+  <p class="lead">O Simulador calcula o efeito da reforma no EBITDA da rede, de 2026 a 2033, por estado, bandeira, canal (loja e e-commerce) e categoria. Também compara dois cenários: sem nenhuma ação (base) e com o seu plano de ação.</p>
+
+  <h3>A tela</h3>
+  {{fig:sim-topo|Topo do Simulador|Ano analisado. Todos os números da tela mudam para o ano escolhido.;;Plano de ação: as alavancas que você controla.;;Indicadores do ano e acumulados.;;Troca para o Negociador.}}
+
+  <h3>Passo a passo</h3>
+  <ol class="steps">
+    <li><div><b>Comece pelas premissas.</b> Role até a seção <b>Premissas</b> no fim da página e informe a receita bruta anual, a participação de cada estado, o mix de categorias e as despesas. Detalhes na página seguinte.</div></li>
+    <li><div><b>Escolha o ano</b> nos botões do topo. 2027 mostra o primeiro impacto real; 2033 mostra o regime definitivo.</div></li>
+    <li><div><b>Ajuste o plano de ação</b> movendo as alavancas da coluna esquerda. Embaixo de cada uma aparece o valor do cenário base.</div></li>
+    <li><div><b>Leia os indicadores:</b> EBITDA do ano com o plano, resultado sem ações, acumulado de 2027 a 2033 e variação média do preço ao consumidor.</div></li>
+    <li><div><b>Veja o gráfico ano a ano</b> para entender quais efeitos pesam em cada fase da transição.</div></li>
+    <li><div><b>Leia "O que fazer"</b>: as ações em ordem de impacto financeiro e os pontos de atenção.</div></li>
+    <li><div><b>Desça às tabelas</b> por estado, por bandeira e canal e por categoria para achar onde está o problema.</div></li>
+  </ol>
+
+  <h3>As alavancas do plano de ação</h3>
+  <table>
+    <thead><tr><th>Alavanca</th><th>O que representa</th><th>Como agir na prática</th></tr></thead>
+    <tbody>
+      <tr><td>Fornecedores do Simples migrados</td><td>Parte das compras de empresas do Simples Nacional que passa a gerar crédito integral de IBS/CBS ou tem o preço renegociado.</td><td>Mapear fornecedores por regime e negociar a opção pelo IBS/CBS fora do Simples ou um desconto equivalente.</td></tr>
+      <tr><td>Captura de créditos em despesas</td><td>Quanto dos créditos novos (energia, TI, serviços, frete, comissões) a empresa de fato aproveita.</td><td>ERP parametrizado, cadastro de fornecedores em dia e conciliação com a apuração assistida.</td></tr>
+      <tr><td>Erro de classificação fiscal</td><td>Vendas de itens com alíquota zero ou reduzida tributadas como cheias por erro de NCM ou cClassTrib.</td><td>Sanear o cadastro de produtos e travar a regra no PDV.</td></tr>
+      <tr><td>Retenção das quedas de preço</td><td>Quanto da redução de carga fica na margem em vez de baixar o preço. Considera a perda de volume.</td><td>Política de preço por categoria. Na cesta básica, o mercado tende a repassar.</td></tr>
+      <tr><td>Repasse dos aumentos de preço</td><td>Quanto dos aumentos (Imposto Seletivo em bebidas alcoólicas, por exemplo) chega à gôndola.</td><td>Decidir o que absorver e o que repassar.</td></tr>
+    </tbody>
+  </table>
+  <p>Os botões <b>Voltar ao plano sugerido</b> e <b>Igualar ao base</b> repõem as alavancas. Igualar ao base é útil para medir o efeito de uma única alavanca: zere todas e mova só a que interessa.</p>
+</section>
+
+<section>
+  <h3>Como ler o gráfico</h3>
+  {{fig:sim-grafico|Impacto ano a ano no EBITDA|Legenda: cada cor é um efeito.;;Barras acima de zero melhoram o resultado; abaixo de zero pioram. O ponto preto é o resultado líquido do plano; a linha tracejada é o cenário sem ações.;;O que muda em cada ano da transição. O ano escolhido fica destacado.}}
+  <p>Passe o mouse sobre uma barra ou um ponto para ver o valor exato, em R$ milhões.</p>
+
+  <h3>O que fazer, em ordem de impacto</h3>
+  {{fig:sim-acoes|Lista de ações e pontos de atenção}}
+  <p>As linhas numeradas são as alavancas do seu plano, ordenadas pelo ganho que trazem. À direita aparecem o ganho no ano escolhido e o acumulado de 2027 a 2033. As linhas marcadas com <b>!</b> são diagnósticos: o efeito que mais pesa no ano, o estado mais exposto e a categoria com maior alta de preço.</p>
+</section>
+
+<section>
+  <h3>Tabelas por estado, bandeira e categoria</h3>
+  {{fig:sim-uf|Tabela por estado|Copia a tabela para colar direto no Excel.;;Leitura rápida de cada estado.}}
+  <p class="chips">A coluna "Leitura" resume a situação: <span class="g">Favorável</span> o estado ganha com a reforma; <span class="w">Atenção</span> perda pequena; <span class="l">Revisar</span> perda acima de 0,2% da receita, que pede revisão de sortimento, preço ou lojas antes de 2029.</p>
+  <p>A tabela <b>Por bandeira e canal</b> separa loja física e e-commerce. A tabela <b>Por categoria</b> mostra a carga de impostos de hoje, a do ano escolhido e a variação de preço ao consumidor.</p>
+
+  <h3>Premissas</h3>
+  {{fig:sim-premissas|Premissas, aba Estados|Abas de premissas.;;Volta tudo aos valores de exemplo.}}
+  <table>
+    <thead><tr><th>Aba</th><th>O que informar</th></tr></thead>
+    <tbody>
+      <tr><td>Alíquotas e finanças</td><td>Receita bruta anual, alíquotas de referência de CBS e IBS, crédito do Simples, crédito presumido de produtor rural, repasse da indústria, margem de contribuição, split payment, custo de capital, fundo de compensação e margem bruta de cada bandeira.</td></tr>
+      <tr><td>Estados</td><td>Para cada UF: participação na receita, alíquota de ICMS, peso de cada bandeira, participação do e-commerce, ajuste de IBS estadual e benefícios de ICMS em R$ milhões por ano. Se a soma das participações não der 100%, o cálculo normaliza sozinho.</td></tr>
+      <tr><td>Categorias</td><td>Mix de vendas por bandeira, carga atual de ICMS e PIS/Cofins, redução de IBS/CBS, parcela comprada do Simples e de produtor rural, tributos embutidos no custo, Imposto Seletivo e elasticidade-preço.</td></tr>
+      <tr><td>Despesas e canais</td><td>Energia e serviços como % da venda, participação de vendas por cartão e Pix (afeta o split payment), PIS/Cofins e ISS sem crédito hoje.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Os valores ficam salvos</b><p>As premissas que você digita ficam neste navegador e reaparecem quando você volta. Para começar de novo, use "Restaurar valores-padrão".</p></div>
+</section>
+
+<!-- 4 -->
+<section class="chapter" id="c4">
+  <span class="eyebrow">Capítulo 4</span>
+  <h2>Negociador: carregar os dados</h2>
+  <p class="lead">O Negociador trabalha com a lista de itens que você compra: fornecedor, preço na nota, impostos, volume anual e preço de venda. Esses dados entram por arquivo ou por integração.</p>
+
+  <h3>A ordem que dá menos trabalho</h3>
+  <ol class="steps">
+    <li><div><b>Importe os XMLs das notas fiscais de entrada</b> do fornecedor. Eles trazem quase tudo do lado da compra.</div></li>
+    <li><div><b>Importe a planilha de cadastro e vendas</b> no modo <b>Mesclar</b>. Ela completa categoria, subcategoria, marca, volume anual, preço de venda e verbas.</div></li>
+    <li><div><b>Confira os itens com "classificação pendente"</b> e informe a redução de IBS/CBS (capítulo 5).</div></li>
+  </ol>
+
+  <h3>A aba Importar</h3>
+  {{fig:neg-importar|Aba Importar|Solte os arquivos aqui ou clique para escolher. Pode mandar vários de uma vez.;;Mesclar com os itens atuais ou substituir todos.;;Baixa uma planilha modelo com todas as colunas e um dicionário.;;Recarrega os dados de exemplo.}}
+
+  <h3>Formatos aceitos</h3>
+  <table>
+    <thead><tr><th>Formato</th><th>O que vem dele</th><th>Observações</th></tr></thead>
+    <tbody>
+      <tr><td>XML de NF-e</td><td>Fornecedor, CNPJ, regime (Simples ou não), código, EAN, descrição, NCM, preço unitário com desconto, ICMS, ICMS-ST, IPI, PIS/Cofins e, nas notas de 2026, o cClassTrib e a redução de IBS/CBS.</td><td>Notas repetidas do mesmo item somam a quantidade e ficam com o preço da nota mais recente.</td></tr>
+      <tr><td>Excel (.xlsx, .xls)</td><td>Qualquer campo do modelo.</td><td>Lê a primeira aba. A primeira linha precisa ter os nomes das colunas.</td></tr>
+      <tr><td>CSV e TXT</td><td>Qualquer campo do modelo.</td><td>Reconhece sozinho o separador (ponto e vírgula, tabulação, barra vertical ou vírgula) e números no formato brasileiro, como <code>1.250.000</code> e <code>3,99</code>.</td></tr>
+      <tr><td>JSON</td><td>Qualquer campo do modelo.</td><td>Uma lista de itens, ou um objeto com a lista em <code>items</code>, <code>itens</code> ou <code>data</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mesclar ou substituir</h3>
+  <p><b>Mesclar</b> atualiza os itens que já existem e acrescenta os novos. O item é reconhecido pelo EAN; sem EAN, pelo CNPJ do fornecedor mais o código. Campos vazios no arquivo não apagam o que já estava preenchido. <b>Substituir</b> apaga tudo antes de importar.</p>
+</section>
+
+<section>
+  <h3>Mapear as colunas</h3>
+  <p>Quando a planilha tem alguma coluna com nome desconhecido, aparece a tela de mapeamento. Colunas com nomes comuns, como "Código", "Descrição", "Preço de venda", "Volume anual" e "NCM", já vêm ligadas ao campo certo.</p>
+  {{fig:neg-mapear|Tela de mapeamento de colunas|Escolha a qual campo a coluna corresponde, ou deixe "ignorar".;;Confirma a importação.}}
+
+  <h3>Campos mais importantes</h3>
+  <table>
+    <thead><tr><th>Campo</th><th>Para que serve</th><th>Vem do XML?</th></tr></thead>
+    <tbody>
+      <tr><td>sku / ean</td><td>Identificar o item e cruzar arquivos diferentes</td><td>Sim</td></tr>
+      <tr><td>fornecedor / cnpj</td><td>Agrupar a negociação por fornecedor</td><td>Sim</td></tr>
+      <tr><td>preco</td><td>Preço unitário de compra na nota, com desconto em nota</td><td>Sim</td></tr>
+      <tr><td>ncm / cclass / red</td><td>Definir se o item tem alíquota cheia, reduzida em 60% ou zero</td><td>Sim (cClassTrib e redução nas notas de 2026)</td></tr>
+      <tr><td>qtd</td><td>Volume anual em unidades. Pesa cada item no total</td><td>Só a quantidade das notas importadas</td></tr>
+      <tr><td>pv</td><td>Preço de venda ao consumidor</td><td>Não</td></tr>
+      <tr><td>categoria / subcategoria / marca</td><td>Montar a árvore da mesa de negociação</td><td>Não</td></tr>
+      <tr><td>verba / bonif</td><td>Condições comerciais que reduzem o custo efetivo</td><td>Não</td></tr>
+      <tr><td>icmsV / pcV</td><td>ICMS na venda e se o PIS/Cofins da venda é tributado ou zero</td><td>Não (o pcV é estimado pela nota)</td></tr>
+    </tbody>
+  </table>
+  <p>A lista completa, com tipo, exemplo e nomes de coluna aceitos, está na aba <b>Integração e API</b> e na aba "Dicionario" da planilha modelo.</p>
+  <div class="note warn"><b>Volume anual</b><p>Ao importar só os XMLs, o volume usado é a soma das quantidades das notas importadas, que normalmente não é um ano inteiro. Para os totais em R$ por ano ficarem corretos, informe o volume anual pela planilha.</p></div>
+</section>
+
+<!-- 5 -->
+<section class="chapter" id="c5">
+  <span class="eyebrow">Capítulo 5</span>
+  <h2>Negociador: negociar e precificar</h2>
+  <p class="lead">Com os dados carregados, a aba Negociação mostra três preços para cada item: o que o fornecedor deveria cobrar, o máximo que você pode aceitar e o que você negociou.</p>
+
+  <h3>Controles e indicadores</h3>
+  {{fig:neg-controles|Controles e indicadores da aba Negociação|Ano analisado (2027 a 2033).;;Regra do preço de venda: manter o preço atual, manter a margem atual ou buscar uma margem-alvo.;;Filtro por fornecedor. Também há busca e filtro por UF.;;Abre ou fecha todos os níveis da árvore.;;Exporta a análise completa em Excel.;;Gera a memória de cálculo para enviar ao fornecedor escolhido no filtro.;;Totais dos itens filtrados.}}
+
+  <h4>As três regras de preço de venda</h4>
+  <table>
+    <thead><tr><th>Regra</th><th>O que acontece</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td>Manter preço de venda atual</td><td>O preço de gôndola não muda; a margem sobe ou desce conforme o custo.</td><td>Para negociar compra: mostra quanto o custo precisa cair.</td></tr>
+      <tr><td>Manter margem atual</td><td>Calcula o preço de venda que preserva a margem de hoje com o custo novo.</td><td>Para definir a tabela de preços de 2027.</td></tr>
+      <tr><td>Margem-alvo</td><td>Calcula o preço de venda para atingir a margem informada no campo "Margem-alvo %".</td><td>Para simular uma política de margem.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h3>A mesa de negociação</h3>
+  <p>A tabela é uma árvore: fornecedor, categoria, subcategoria, marca e item. Clique na seta ao lado do nome para abrir ou fechar um nível. Nas linhas de grupo, as colunas de preço mostram a variação média ponderada pelo volume.</p>
+  {{fig:neg-mesa|Mesa de negociação com um fornecedor aberto até o item|Na linha do fornecedor: desconto pedido sobre o preço neutro, em %, aplicado a todos os itens dele. Exemplo: −2.;;No item: preço negociado em R$. Tem prioridade sobre o percentual do fornecedor.;;Situação do item.}}
+
+  <h4>O que cada coluna quer dizer</h4>
+  <table>
+    <thead><tr><th>Coluna</th><th>Significado</th></tr></thead>
+    <tbody>
+      <tr><td>Volume/ano</td><td>Unidades compradas por ano. Nos grupos, o valor total de compras em R$.</td></tr>
+      <tr><td>Compra hoje</td><td>Preço unitário na nota hoje.</td></tr>
+      <tr><td>Neutro</td><td>Preço que o fornecedor deveria cobrar no ano escolhido para continuar recebendo exatamente a mesma receita líquida de hoje. É o argumento da negociação.</td></tr>
+      <tr><td>Máximo</td><td>Maior preço de compra que mantém a sua margem atual sem mexer no preço de venda. Acima dele, você perde margem.</td></tr>
+      <tr><td>Negociado</td><td>Preço que você digitou. Se estiver vazio, vale o neutro ajustado pelo percentual do fornecedor.</td></tr>
+      <tr><td>Custo efetivo</td><td>Quanto o item realmente custa depois de descontar os créditos de impostos, as verbas e a bonificação. Hoje → ano escolhido.</td></tr>
+      <tr><td>Venda</td><td>Preço ao consumidor. Hoje → ano escolhido, conforme a regra de preço.</td></tr>
+      <tr><td>Margem</td><td>Margem bruta sobre a receita líquida. Hoje → ano escolhido.</td></tr>
+      <tr><td>Lucro bruto</td><td>Variação do lucro bruto no volume anual, em R$.</td></tr>
+    </tbody>
+  </table>
+  <p class="chips">Situação: <span class="g">pedir redução</span> o neutro é menor que o preço de hoje; o fornecedor deveria baixar. <span class="l">aumento justificado</span> a carga sobe e um aumento até o neutro é razoável. <span class="n">neutro</span> nada muda. <span class="w">classificação pendente</span> o item não tem regra de redução de IBS/CBS e está sendo calculado com alíquota cheia.</p>
+
+  <div class="note"><b>Exemplo com os dados fictícios</b><p>Cerveja Pilsen lata: o fornecedor cobra hoje R$ 2,94. Em 2027, para manter a receita dele, o preço neutro é R$ 2,56 (−13%), porque saem o PIS/Cofins embutido e o IPI e a CBS passa a vir por fora, com crédito integral para o varejista. O máximo que mantém a margem com o preço de venda atual é R$ 2,73. Qualquer preço acima de R$ 2,56 é ganho do fornecedor; acima de R$ 2,73, é perda de margem para você.</p></div>
+</section>
+
+<section>
+  <h3>Memória de cálculo</h3>
+  <p>Clique em qualquer item da mesa para ver a conta completa logo abaixo da tabela: compra hoje, compra no ano escolhido, venda hoje e venda no ano escolhido, linha a linha.</p>
+  {{fig:neg-memoria|Memória de cálculo de um item}}
+  <p>O topo da memória mostra de onde veio a redução de IBS/CBS do item (informada, XML, cClassTrib ou NCM) e a alíquota resultante no ano.</p>
+
+  <h3>Exportar</h3>
+  <table>
+    <thead><tr><th>Botão</th><th>O que gera</th><th>Para quem</th></tr></thead>
+    <tbody>
+      <tr><td>Exportar Excel</td><td>Uma planilha com todos os itens filtrados: preços hoje, neutro, máximo e negociado, custo efetivo, venda, margem e variação de lucro.</td><td>Uso interno.</td></tr>
+      <tr><td>Memória para o fornecedor</td><td>Uma planilha com a composição do preço de hoje e do ano escolhido para cada item do fornecedor selecionado no filtro, mais uma aba de premissas. <b>Não inclui</b> margem nem preço de venda.</td><td>Enviar ao fornecedor como base da negociação.</td></tr>
+    </tbody>
+  </table>
+  <p>Para gerar a memória do fornecedor, escolha primeiro o fornecedor no filtro "Fornecedor".</p>
+
+  <h3>Regras de redução de IBS/CBS</h3>
+  {{fig:neg-regras|Aba Premissas, regras de redução|Adiciona uma regra nova.}}
+  <p>A redução de cada item é decidida nesta ordem:</p>
+  <ol class="steps">
+    <li><div>A redução informada no próprio item, pela planilha ou pelo XML.</div></li>
+    <li><div>A regra cadastrada para o cClassTrib do item.</div></li>
+    <li><div>A regra do prefixo de NCM mais longo que combinar. Exemplo: uma regra para <code>0406.10</code> vale antes de uma regra para <code>0406</code>.</div></li>
+    <li><div>Sem nenhuma regra, o item fica como "classificação pendente" e é calculado com alíquota cheia.</div></li>
+  </ol>
+  <p>As regras de NCM que vêm prontas são um ponto de partida. Peça ao time fiscal para validá-las contra os Anexos I, VII, VIII e XV da LC 214/2025.</p>
+</section>
+
+<!-- 6 -->
+<section class="chapter" id="c6">
+  <span class="eyebrow">Capítulo 6 · para a equipe de TI</span>
+  <h2>Integração por API</h2>
+  <p class="lead">Além dos arquivos, o Negociador recebe dados de três formas automáticas. Todas usam o mesmo contrato de dados, documentado na aba Integração e API.</p>
+
+  <h3>Buscar de um serviço REST</h3>
+  {{fig:neg-api|Aba Integração e API|Endereço do serviço (GET).;;Cabeçalho de autenticação. O valor não é salvo.;;Onde está a lista de itens dentro do JSON de resposta.;;Faz a busca.}}
+  <ul>
+    <li>O serviço precisa responder JSON no formato do contrato e liberar CORS para <code>https://marquetti-ric.github.io</code>.</li>
+    <li>Endpoint sugerido: <code>GET /negociacao/itens?fornecedor={cnpj}&amp;uf={uf}</code>, com resposta <code>{"items": [...]}</code>.</li>
+  </ul>
+
+  <h3>Portal ou ERP com a página incorporada</h3>
+  <p>Se o Negociador estiver dentro de um portal (iframe), o portal envia os itens por mensagem:</p>
+  <p><code>iframe.contentWindow.postMessage({type: 'contrapeso:carregar', modo: 'merge', itens: [...]}, '*')</code></p>
+  <p>A página responde com <code>{type: 'contrapeso:carregado', novos, atualizados}</code>.</p>
+
+  <h3>Script na própria página</h3>
+  <p><code>Contrapeso.carregar(itens, 'merge')</code> carrega os itens. <code>Contrapeso.resultado()</code> devolve o cálculo do ano selecionado por item, para levar de volta a outro sistema.</p>
+  <div class="note warn"><b>Segurança</b><p>Não coloque tokens de produção na URL. Use o campo de cabeçalho, que não é gravado, e um token só de leitura, com escopo limitado.</p></div>
+</section>
+
+<!-- 7 -->
+<section class="chapter" id="c7">
+  <span class="eyebrow">Capítulo 7</span>
+  <h2>Roteiro prático de negociação</h2>
+  <p class="lead">Um caminho completo, do arquivo à reunião, para um fornecedor.</p>
+  <ol class="steps">
+    <li><div><b>Junte os arquivos:</b> os XMLs das notas de entrada dos últimos meses desse fornecedor e uma planilha com volume anual, preço de venda, categoria, subcategoria, marca e verbas dos itens dele.</div></li>
+    <li><div><b>Importe</b> os XMLs no modo Substituir e depois a planilha no modo Mesclar.</div></li>
+    <li><div><b>Resolva as pendências:</b> filtre o fornecedor e procure itens com "classificação pendente". Informe a redução pela planilha ou crie a regra na aba Premissas.</div></li>
+    <li><div><b>Escolha o ano 2027</b> e a regra <b>Manter preço de venda atual</b>.</div></li>
+    <li><div><b>Leia a linha do fornecedor:</b> a coluna Neutro mostra quanto, em média, o preço deveria mudar. A coluna Máximo mostra até onde você pode ir sem perder margem.</div></li>
+    <li><div><b>Defina o pedido:</b> digite o percentual sobre o neutro na linha do fornecedor (por exemplo, −2 para pedir 2% abaixo do neutro) ou o preço de itens específicos. Confira o efeito em Lucro bruto.</div></li>
+    <li><div><b>Gere a Memória para o fornecedor</b> e envie antes da reunião. Ela mostra a conta item a item, sem expor a sua margem.</div></li>
+    <li><div><b>Depois do acordo,</b> digite os preços fechados, troque a regra para <b>Manter margem atual</b> e exporte o Excel completo para atualizar a tabela de preços de venda.</div></li>
+  </ol>
+  <div class="note"><b>Dica</b><p>Fornecedor que tem redução de carga e não revisa o preço fica com o ganho. O preço neutro é o argumento objetivo para trazer essa redução para o custo de compra.</p></div>
+</section>
+
+<!-- 8 -->
+<section class="chapter" id="c8">
+  <span class="eyebrow">Capítulo 8</span>
+  <h2>Glossário</h2>
+  <table>
+    <thead><tr><th>Termo</th><th>Significado</th></tr></thead>
+    <tbody>
+      <tr><td>CBS</td><td>Contribuição sobre Bens e Serviços. Tributo federal que substitui PIS e Cofins a partir de 2027.</td></tr>
+      <tr><td>IBS</td><td>Imposto sobre Bens e Serviços. Estadual e municipal; substitui ICMS e ISS de 2029 a 2033.</td></tr>
+      <tr><td>Imposto Seletivo</td><td>Imposto federal sobre produtos prejudiciais à saúde ou ao meio ambiente, como bebidas alcoólicas. Começa em 2027.</td></tr>
+      <tr><td>Alíquota de referência</td><td>Alíquota padrão de IBS e CBS. A estimativa usada é 27,91% somados.</td></tr>
+      <tr><td>Por dentro / por fora</td><td>O ICMS é calculado "por dentro": já está embutido no preço. IBS e CBS são "por fora": somados ao preço, com destaque na nota.</td></tr>
+      <tr><td>Crédito</td><td>Imposto pago na compra que a empresa desconta do imposto devido na venda. Na reforma, praticamente tudo gera crédito.</td></tr>
+      <tr><td>cClassTrib</td><td>Código de classificação tributária de IBS/CBS informado na nota fiscal. Indica, entre outras coisas, se o item tem redução de alíquota.</td></tr>
+      <tr><td>Cesta Básica Nacional</td><td>Alimentos do Anexo I da LC 214/2025, com alíquota zero de IBS e CBS.</td></tr>
+      <tr><td>Redução de 60%</td><td>Itens dos Anexos VII (alimentos) e VIII (higiene e limpeza), com 40% da alíquota padrão.</td></tr>
+      <tr><td>ICMS-ST</td><td>Substituição tributária: o ICMS da revenda é cobrado antecipadamente do fornecedor. Diminui de 2029 a 2032 e acaba em 2033.</td></tr>
+      <tr><td>Simples Nacional</td><td>Regime das pequenas empresas. Quem compra delas tem crédito limitado ao IBS/CBS pago dentro do Simples.</td></tr>
+      <tr><td>Split payment</td><td>Recolhimento do imposto no momento do pagamento (cartão, Pix), antes de chegar ao caixa da empresa. Reduz o capital de giro.</td></tr>
+      <tr><td>Preço neutro</td><td>Preço que mantém para o fornecedor a mesma receita líquida de hoje, depois da troca de tributos.</td></tr>
+      <tr><td>Preço máximo</td><td>Maior preço de compra que mantém a margem atual do varejista sem mexer no preço de venda.</td></tr>
+      <tr><td>Custo efetivo</td><td>Custo da mercadoria depois de descontar créditos de impostos, verbas e bonificações.</td></tr>
+      <tr><td>Margem bruta</td><td>(Receita líquida − custo efetivo) ÷ receita líquida.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 9 -->
+<section class="chapter" id="c9">
+  <span class="eyebrow">Capítulo 9</span>
+  <h2>Problemas comuns</h2>
+  <table>
+    <thead><tr><th>O que aconteceu</th><th>Por quê</th><th>O que fazer</th></tr></thead>
+    <tbody>
+      <tr><td class="wrap">Meus dados sumiram</td><td>Os dados ficam no navegador. Outro computador, outro navegador, janela anônima ou limpeza de dados de navegação mostram a ferramenta vazia.</td><td>Use sempre o mesmo navegador e guarde os arquivos originais para reimportar.</td></tr>
+      <tr><td class="wrap">A importação diz "0 itens novos"</td><td>Nenhuma coluna foi ligada a código, EAN ou descrição, ou o modo Mesclar só atualizou itens que já existiam.</td><td>Confira o mapeamento das colunas e a mensagem "atualizados".</td></tr>
+      <tr><td class="wrap">Valores com vírgula vieram errados</td><td>A coluna tem texto misturado, como "R$ 3,99 un".</td><td>Deixe só o número na planilha. Formatos como 3,99 e 1.250.000 são aceitos.</td></tr>
+      <tr><td class="wrap">Muitos itens com "classificação pendente"</td><td>As notas são anteriores a 2026 e não trazem cClassTrib, e não há regra para o NCM.</td><td>Informe a coluna "red" (0, 60 ou 100) na planilha ou crie regras de NCM.</td></tr>
+      <tr><td class="wrap">A busca por API dá erro</td><td>O serviço não liberou CORS para o site ou o token está errado.</td><td>Peça à TI para liberar <code>https://marquetti-ric.github.io</code>. Enquanto isso, importe o JSON por arquivo.</td></tr>
+      <tr><td class="wrap">O botão de Excel não baixa nada</td><td>O navegador bloqueou o download ou o leitor de Excel não carregou por falta de internet.</td><td>Permita downloads do site e recarregue a página.</td></tr>
+      <tr><td class="wrap">O preço máximo aparece como "—"</td><td>Faltam o preço de venda ou o preço de compra do item.</td><td>Preencha os campos <code>pv</code> e <code>preco</code>.</td></tr>
+      <tr><td class="wrap">Quero voltar ao começo</td><td>—</td><td>No Negociador, "Apagar todos os itens" (clique duas vezes para confirmar). No Simulador, "Restaurar valores-padrão".</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Sobre o Contrapeso</b><p>Ferramenta independente de estimativa sobre a reforma tributária do consumo (EC 132/2023 e LC 214/2025). Código aberto em github.com/Marquetti-Ric/contrapeso. Não é parecer fiscal: valide os números com a sua equipe tributária antes de decidir.</p></div>
+</section>
