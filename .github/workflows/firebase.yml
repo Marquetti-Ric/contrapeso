@@ -1,0 +1,94 @@
+name: Firebase (testes e publicação)
+
+on:
+  push:
+    paths: ['firebase/**', 'firebase.json', 'site/**', '.github/workflows/firebase.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testar:
+    name: Testar isolamento e fluxo completo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Instalar ferramentas de teste
+        run: |
+          npm install --no-save firebase-tools@13 @firebase/rules-unit-testing@3 firebase@10 playwright@1.48
+          npx playwright install --with-deps chromium
+      - name: Regras de isolamento entre empresas
+        run: npx firebase emulators:exec --only firestore --project demo-contrapeso "node --test firebase/tests/regras.test.mjs"
+      - name: Fluxo completo no navegador (login, convites, perfis, master)
+        run: |
+          python3 -m http.server 8081 --bind 127.0.0.1 -d site > /dev/null 2>&1 &
+          npx firebase emulators:exec --only auth,firestore --project demo-contrapeso "node firebase/tests/e2e.mjs"
+      - name: Guardar telas do teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telas-e2e
+          path: e2e-telas
+          if-no-files-found: ignore
+
+  publicar:
+    name: Publicar regras e configurar login
+    needs: testar
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      CONTA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      PROJETO: ${{ secrets.FIREBASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar se o Firebase está configurado
+        id: cfg
+        run: |
+          if [ -z "$CONTA" ] || [ -z "$PROJETO" ]; then
+            echo "::notice::Secrets do Firebase ainda não cadastrados. Publicação pulada."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ok == 'true'
+        with:
+          node-version: 20
+      - uses: google-github-actions/auth@v2
+        if: steps.cfg.outputs.ok == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Publicar regras e índices do Firestore
+        if: steps.cfg.outputs.ok == 'true'
+        run: npx --yes firebase-tools@13 deploy --only firestore:rules,firestore:indexes --project "$PROJETO" --non-interactive
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.cfg.outputs.ok == 'true'
+      - name: Configurar login (e-mail e senha, domínio do site)
+        if: steps.cfg.outputs.ok == 'true'
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          URL="https://identitytoolkit.googleapis.com/admin/v2/projects/$PROJETO/config"
+          curl -sS -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJETO" "$URL" > atual.json
+          DOMINIOS=$(jq -c '(.authorizedDomains // []) + ["marquetti-ric.github.io"] | unique' atual.json)
+          jq -n --argjson d "$DOMINIOS" '{signIn:{email:{enabled:true,passwordRequired:true}}, authorizedDomains:$d}' > novo.json
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X PATCH -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJETO" -H "Content-Type: application/json" \
+            "$URL?updateMask=signIn.email.enabled,signIn.email.passwordRequired,authorizedDomains" --data @novo.json)
+          if [ "$code" -ge 300 ]; then
+            echo "::warning::Não foi possível configurar o login automaticamente ($code). Ative 'E-mail/senha' e adicione o domínio marquetti-ric.github.io em Authentication > Configurações no console."
+            cat resp.json
+          else
+            echo "Login configurado: e-mail e senha ativos, domínio autorizado."
+          fi

@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../app/base.css">
 <script src="../app/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-firestore-compat.js"></script>
 <script src="../app/conta.js"></script>
 </head>
 <body>
@@ -61,21 +63,10 @@
     </form>
   </section>
 
-  <section id="v-senha" class="card" hidden>
-    <div><h1 id="t-senha">Defina a sua senha</h1><p class="muted" style="margin-top:6px" id="s-senha">Você vai usar esta senha para entrar no Contrapeso.</p></div>
-    <div class="msg" id="m-senha" role="status"></div>
-    <form id="f-senha" novalidate>
-      <div class="campo"><label for="n-nome">Seu nome</label><input id="n-nome" type="text" autocomplete="name" maxlength="120"></div>
-      <div class="campo"><label for="n-senha">Nova senha</label><input id="n-senha" type="password" autocomplete="new-password" required><small>Mínimo de 8 caracteres, com letras e números.</small></div>
-      <div class="campo"><label for="n-senha2">Repita a senha</label><input id="n-senha2" type="password" autocomplete="new-password" required></div>
-      <button class="btn" type="submit" id="b-senha">Salvar senha e continuar</button>
-    </form>
-  </section>
-
   <section id="v-aviso" class="card" hidden>
     <h1 id="t-aviso"></h1>
     <p id="p-aviso" class="muted"></p>
-    <div class="acoes"><button class="btn ghost" type="button" id="b-aviso">Voltar para entrar</button></div>
+    <div class="acoes"><button class="btn ghost" type="button" id="b-aviso">Ir para entrar</button></div>
   </section>
 
   <footer class="foot">Ferramenta independente de estimativa sobre a reforma tributária do consumo. Não é parecer fiscal.</footer>
@@ -87,14 +78,13 @@
   const fluxo=P.get('fluxo');
   const volta=P.get('volta');
   const destino=()=> (volta && volta.startsWith('/') && !volta.startsWith('//')) ? volta : Conta.BASE+'empresa/';
-  const views=['v-off','v-acesso','v-senha','v-aviso'];
+  const views=['v-off','v-acesso','v-aviso'];
   const mostrar=v=>views.forEach(x=>$(x).hidden=x!==v);
   const msg=(id,t,c)=>{const e=$(id);e.textContent=t||'';e.className='msg '+(c||'');};
   const senhaOk=s=>s.length>=8 && /[a-zA-Z]/.test(s) && /\d/.test(s);
   const ocupado=(b,on,txt)=>{b.disabled=on;if(txt){b.dataset.t=b.dataset.t||b.textContent;b.textContent=on?txt:b.dataset.t}};
 
   if(!Conta.ATIVO){mostrar('v-off');return}
-  const sb=Conta.sb();
 
   function aba(qual){
     $('aba-entrar').setAttribute('aria-selected',qual==='entrar');$('aba-criar').setAttribute('aria-selected',qual==='criar');
@@ -106,36 +96,29 @@
   $('b-esqueci').onclick=()=>{$('r-email').value=$('e-email').value;aba('esqueci')};
   $('b-voltar').onclick=()=>aba('entrar');
   $('b-aviso').onclick=()=>{history.replaceState(null,'',location.pathname);mostrar('v-acesso');aba('entrar')};
-  if(P.get('aba')==='criar') aba('criar');
 
-  // Convite e recuperação de senha chegam com a sessão no endereço
-  let recuperacao=false;
-  sb.auth.onAuthStateChange((ev)=>{ if(ev==='PASSWORD_RECOVERY'){recuperacao=true;abrirSenha('senha')} });
-  function abrirSenha(tipo){
-    mostrar('v-senha');
-    $('t-senha').textContent= tipo==='convite' ? 'Bem-vindo ao Contrapeso' : 'Crie uma senha nova';
-    $('s-senha').textContent= tipo==='convite' ? 'Você foi convidado para uma empresa. Defina a sua senha para entrar.' : 'Defina a nova senha da sua conta.';
-    $('n-nome').closest('.campo').hidden = tipo!=='convite';
-  }
-  const hash=new URLSearchParams(location.hash.slice(1));
-  if(hash.get('error_description')){
-    mostrar('v-aviso');$('t-aviso').textContent='Link inválido ou expirado';
-    $('p-aviso').textContent='Peça um novo convite ao administrador da empresa ou use "Esqueci minha senha".';return;
-  }
-  const {data:{session}}=await sb.auth.getSession();
-  if(session && (fluxo==='convite'||fluxo==='senha'||hash.get('type')==='invite'||hash.get('type')==='recovery')){ abrirSenha(fluxo==='convite'||hash.get('type')==='invite'?'convite':'senha'); }
-  else if(fluxo==='confirmado'){ if(session){location.replace(destino());return} mostrar('v-aviso');$('t-aviso').textContent='E-mail confirmado';$('p-aviso').textContent='Agora é só entrar com o seu e-mail e senha.'; }
-  else if(session && !recuperacao){ location.replace(destino()); return; }
-  else mostrar('v-acesso');
+  let u=null;
+  try{u=await Conta.sessao()}catch(e){mostrar('v-acesso');msg('m-acesso',Conta.traduz(e),'err');return}
+
+  if(fluxo==='convite'||fluxo==='senha-criada'){
+    const email=P.get('email')||'';
+    if(u && email && (u.email||'').toLowerCase()!==email.toLowerCase()){ try{await Conta.fb().auth.signOut()}catch(e){} u=null; }
+    if(u){location.replace(destino());return}
+    mostrar('v-acesso');aba('entrar');$('e-email').value=email;
+    msg('m-acesso', fluxo==='convite'?'Senha criada. Entre com o seu e-mail e a nova senha para acessar a empresa que convidou você.':'Senha alterada. Entre com a nova senha.','ok');
+    (email?$('e-senha'):$('e-email')).focus();
+  } else if(fluxo==='confirmado'){
+    if(u){ try{await Conta.atualizarUsuario();await Conta.aceitarConvites()}catch(e){} location.replace(destino()); return; }
+    mostrar('v-aviso');$('t-aviso').textContent='E-mail confirmado';$('p-aviso').textContent='Agora é só entrar com o seu e-mail e senha.';
+  } else if(u){ location.replace(destino()); return; }
+  else { mostrar('v-acesso'); if(P.get('aba')==='criar') aba('criar'); }
 
   $('f-entrar').onsubmit=async e=>{
     e.preventDefault();const b=$('b-entrar');
     const email=$('e-email').value.trim(), senha=$('e-senha').value;
     if(!email||!senha){msg('m-acesso','Informe e-mail e senha.','err');return}
     ocupado(b,true,'Entrando…');
-    const {error}=await sb.auth.signInWithPassword({email,password:senha});
-    ocupado(b,false);
-    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
+    try{await Conta.entrar(email,senha)}catch(err){ocupado(b,false);msg('m-acesso',Conta.traduz(err),'err');return}
     location.replace(destino());
   };
   $('f-criar').onsubmit=async e=>{
@@ -148,33 +131,16 @@
     if(!senhaOk(s1)){msg('m-acesso','A senha precisa ter pelo menos 8 caracteres, com letras e números.','err');return}
     if(s1!==s2){msg('m-acesso','As duas senhas não são iguais.','err');return}
     ocupado(b,true,'Criando…');
-    const {data,error}=await sb.auth.signUp({email,password:s1,options:{data:{nome,empresa_nome:empresa,empresa_cnpj:cnpj||null},emailRedirectTo:Conta.BASE+'entrar/?fluxo=confirmado'}});
-    ocupado(b,false);
-    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
-    if(data.user && Array.isArray(data.user.identities) && data.user.identities.length===0){msg('m-acesso',Conta.traduz('already registered'),'err');return}
-    if(data.session){location.replace(Conta.BASE+'empresa/');return}
-    mostrar('v-aviso');$('t-aviso').textContent='Confirme o seu e-mail';
-    $('p-aviso').textContent='Enviamos um link para '+email+'. Abra o e-mail e clique no link para ativar a conta da '+empresa+'. Se não aparecer em alguns minutos, olhe a caixa de spam.';
+    try{await Conta.criarConta({empresa,cnpj:cnpj||null,nome,email,senha:s1})}catch(err){ocupado(b,false);msg('m-acesso',Conta.traduz(err),'err');return}
+    location.replace(Conta.BASE+'empresa/?nova=1');
   };
   $('f-esqueci').onsubmit=async e=>{
     e.preventDefault();const b=$('b-esqueci-ok');const email=$('r-email').value.trim();
     if(!email){msg('m-acesso','Informe o e-mail.','err');return}
     ocupado(b,true,'Enviando…');
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:Conta.BASE+'entrar/?fluxo=senha'});
+    try{await Conta.recuperarSenha(email)}catch(err){if(!/user-not-found/.test(err.code||'')){ocupado(b,false);msg('m-acesso',Conta.traduz(err),'err');return}}
     ocupado(b,false);
-    if(error){msg('m-acesso',Conta.traduz(error),'err');return}
-    msg('m-acesso','Se houver uma conta com esse e-mail, o link chega em alguns minutos.','ok');
-  };
-  $('f-senha').onsubmit=async e=>{
-    e.preventDefault();const b=$('b-senha');const s1=$('n-senha').value,s2=$('n-senha2').value,nome=$('n-nome').value.trim();
-    if(!senhaOk(s1)){msg('m-senha','A senha precisa ter pelo menos 8 caracteres, com letras e números.','err');return}
-    if(s1!==s2){msg('m-senha','As duas senhas não são iguais.','err');return}
-    ocupado(b,true,'Salvando…');
-    const upd={password:s1}; if(nome) upd.data={nome};
-    const {error}=await sb.auth.updateUser(upd);
-    ocupado(b,false);
-    if(error){msg('m-senha',Conta.traduz(error),'err');return}
-    location.replace(destino());
+    msg('m-acesso','Se houver uma conta com esse e-mail, o link chega em alguns minutos. Confira também a caixa de spam.','ok');
   };
 })();
 </script>

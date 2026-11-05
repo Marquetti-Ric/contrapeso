@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../app/base.css">
 <script src="../app/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-firestore-compat.js"></script>
 <script src="../app/conta.js"></script>
 </head>
 <body>
@@ -21,6 +23,11 @@
   </div>
 
   <div class="msg" id="m-geral" role="status"></div>
+  <section class="card" id="c-verificar" hidden style="background:var(--warn-soft);border-color:transparent">
+    <h2>Confirme o seu e-mail</h2>
+    <p id="v-texto" style="font-size:14px">Enviamos um link de confirmação para o seu e-mail. A confirmação é necessária para aceitar convites de outras empresas e para o acesso master.</p>
+    <div class="acoes"><button class="btn ghost pequeno" type="button" id="b-reenviar-ver">Reenviar e-mail de confirmação</button><button class="btn ghost pequeno" type="button" id="b-ja-confirmei">Já confirmei</button></div>
+  </section>
 
   <section class="card" id="c-empresa" hidden>
     <div class="card-head">
@@ -79,23 +86,25 @@
 <script>
 (async function(){
   const $=id=>document.getElementById(id), esc=Conta.esc;
-  const msg=(id,t,c)=>{const e=$(id);e.textContent=t||'';e.className='msg '+(c||'');if(t&&c==='ok')setTimeout(()=>{if(e.textContent===t)e.textContent=''},5000)};
+  const msg=(id,t,c)=>{const e=$(id);e.textContent=t||'';e.className='msg '+(c||'');if(t&&c==='ok')setTimeout(()=>{if(e.textContent===t)e.textContent=''},6000)};
   const fmtCnpj=c=>c&&c.length===14?c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):(c||'');
   const PAPEL={admin:'Admin',editor:'Editor',leitor:'Leitor',master:'Master'};
   if(!Conta.ATIVO){location.replace('../entrar/');return}
   Conta.estilos();
-  const sb=Conta.sb();
-  const s=await Conta.sessao();
-  if(!s){location.replace('../entrar/?volta='+encodeURIComponent(location.pathname));return}
+  const u=await Conta.sessao();
+  if(!u){location.replace('../entrar/?volta='+encodeURIComponent(location.pathname));return}
   $('b-sair').onclick=Conta.sair;
-  let me, lista, atual, confirmar=null;
+  let me, lista, atual, linhas=[], confirmar=null, confirmarEmp=null;
+  $('b-reenviar-ver').onclick=async()=>{try{await Conta.reenviarVerificacao();msg('m-geral','E-mail de confirmação reenviado.','ok')}catch(e){msg('m-geral',Conta.traduz(e),'err')}};
+  $('b-ja-confirmei').onclick=async()=>{await Conta.atualizarUsuario();const n=await Conta.aceitarConvites();await carregar();msg('m-geral',me.verificado?(n?'E-mail confirmado. '+n+' convite(s) aceito(s).':'E-mail confirmado.'):'Ainda não recebemos a confirmação. Abra o link do e-mail e tente de novo.',me.verificado?'ok':'err')};
   async function carregar(){
-    try{[me,lista]=await Promise.all([Conta.eu(),Conta.minhasEmpresas()])}catch(e){msg('m-geral',Conta.traduz(e),'err');return}
+    try{await Conta.aceitarConvites();me=await Conta.eu();lista=await Conta.minhasEmpresas()}catch(e){msg('m-geral',Conta.traduz(e),'err');return}
     $('quem').textContent=(me.nome?me.nome+' · ':'')+me.email+(me.master?' · master':'');
+    $('c-verificar').hidden=me.verificado;
     atual=Conta.empresaEscolhida(lista);
     $('c-empresa').hidden=!atual;$('c-usuarios').hidden=!atual;
-    if(!lista.length){$('n-titulo').textContent='Crie a sua empresa';$('n-texto').textContent='Você ainda não faz parte de nenhuma empresa. Crie uma para começar, ou peça um convite ao administrador da sua.';}
-    else {$('n-titulo').textContent='Criar outra empresa';}
+    if(!lista.length){$('n-titulo').textContent='Crie a sua empresa';$('n-texto').textContent='Você ainda não faz parte de nenhuma empresa. Crie uma para começar. Se você foi convidado, confirme o seu e-mail acima e clique em "Já confirmei".';}
+    else {$('n-titulo').textContent='Criar outra empresa';$('n-texto').textContent='Você será o administrador da nova empresa. Os dados dela ficam separados das outras.';}
     if(atual) await mostrarEmpresa();
     $('c-master').hidden=!me.master; if(me.master) mostrarMaster();
   }
@@ -110,51 +119,51 @@
     await mostrarUsuarios(admin);
   }
   async function mostrarUsuarios(admin){
-    const {data,error}=await sb.rpc('usuarios_da_empresa',{p_empresa:atual.id});
-    if(error){msg('m-usuarios',Conta.traduz(error),'err');return}
-    $('u-conta').textContent=data.length+(data.length===1?' pessoa':' pessoas');
-    $('t-usuarios').innerHTML=data.map(u=>{
-      const eu=u.user_id===me.id;
-      const perfil= admin && !eu ? `<label class="oculto" for="p-${u.user_id}">Perfil de ${esc(u.email)}</label><select id="p-${u.user_id}" data-papel="${u.user_id}">${['admin','editor','leitor'].map(p=>`<option value="${p}" ${p===u.papel?'selected':''}>${PAPEL[p]}</option>`).join('')}</select>` : PAPEL[u.papel];
-      const sit= u.situacao==='ativo'?'<span class="chip g">Ativo</span>':'<span class="chip w">Convite pendente</span>';
-      const quando=u.ultimo_acesso?new Date(u.ultimo_acesso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
-      const acoes= eu?'<span class="muted" style="font-size:12px">você</span>': admin ? `${u.situacao!=='ativo'?`<button class="btn ghost pequeno" type="button" data-reenviar="${esc(u.email)}">Reenviar convite</button> `:''}<button class="btn perigo pequeno" type="button" data-remover="${u.user_id}">${confirmar===u.user_id?'Confirmar remoção':'Remover'}</button>`:'';
-      return `<tr><td><b>${esc(u.nome||u.email)}</b>${u.nome?`<span class="sub">${esc(u.email)}</span>`:''}</td><td>${perfil}</td><td>${sit}</td><td class="muted">${quando}</td><td style="text-align:right;white-space:nowrap">${acoes}</td></tr>`;
+    try{linhas=await Conta.usuariosDaEmpresa(atual.id,admin)}catch(e){msg('m-usuarios',Conta.traduz(e),'err');return}
+    const ativos=linhas.filter(l=>l.tipo==='membro').length, pend=linhas.length-ativos;
+    $('u-conta').textContent=ativos+(ativos===1?' pessoa':' pessoas')+(pend?' · '+pend+(pend===1?' convite pendente':' convites pendentes'):'');
+    $('t-usuarios').innerHTML=linhas.map((l,i)=>{
+      const eu=l.uid===me.id;
+      const perfil= admin && !eu ? `<label class="oculto" for="p-${i}">Perfil de ${esc(l.email)}</label><select id="p-${i}" data-papel="${i}">${['admin','editor','leitor'].map(p=>`<option value="${p}" ${p===l.papel?'selected':''}>${PAPEL[p]}</option>`).join('')}</select>` : PAPEL[l.papel];
+      const sit= l.tipo==='membro'?'<span class="chip g">Ativo</span>':'<span class="chip w">Convite pendente</span>';
+      const quando=l.ultimoAcesso?l.ultimoAcesso.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
+      const chave=l.tipo+':'+(l.uid||l.email);
+      const acoes= eu?'<span class="muted" style="font-size:12px">você</span>': admin ? `${l.tipo==='convite'?`<button class="btn ghost pequeno" type="button" data-reenviar="${i}">Reenviar convite</button> `:''}<button class="btn perigo pequeno" type="button" data-remover="${i}">${confirmar===chave?'Confirmar remoção':(l.tipo==='convite'?'Cancelar convite':'Remover')}</button>`:'';
+      return `<tr><td><b>${esc(l.nome||l.email)}</b>${l.nome?`<span class="sub">${esc(l.email)}</span>`:''}</td><td>${perfil}</td><td>${sit}</td><td class="muted">${quando}</td><td style="text-align:right;white-space:nowrap">${acoes}</td></tr>`;
     }).join('');
     $('t-usuarios').querySelectorAll('[data-papel]').forEach(sel=>sel.onchange=async()=>{
-      const {error}=await sb.from('membros').update({papel:sel.value}).eq('empresa_id',atual.id).eq('user_id',sel.dataset.papel);
-      if(error){msg('m-usuarios',Conta.traduz(error),'err');}else msg('m-usuarios','Perfil alterado.','ok');
+      try{await Conta.alterarPapel(atual.id,linhas[+sel.dataset.papel],sel.value);msg('m-usuarios','Perfil alterado.','ok')}catch(e){msg('m-usuarios',Conta.traduz(e),'err')}
       mostrarUsuarios(admin);
     });
     $('t-usuarios').querySelectorAll('[data-remover]').forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.remover;
-      if(confirmar!==id){confirmar=id;mostrarUsuarios(admin);setTimeout(()=>{if(confirmar===id){confirmar=null;mostrarUsuarios(admin)}},5000);return}
+      const l=linhas[+b.dataset.remover], chave=l.tipo+':'+(l.uid||l.email);
+      if(confirmar!==chave){confirmar=chave;mostrarUsuarios(admin);setTimeout(()=>{if(confirmar===chave){confirmar=null;mostrarUsuarios(admin)}},5000);return}
       confirmar=null;
-      const {error}=await sb.from('membros').delete().eq('empresa_id',atual.id).eq('user_id',id);
-      if(error)msg('m-usuarios',Conta.traduz(error),'err');else msg('m-usuarios','Usuário removido da empresa.','ok');
+      try{await Conta.removerUsuario(atual.id,l);msg('m-usuarios',l.tipo==='convite'?'Convite cancelado.':'Usuário removido da empresa.','ok')}catch(e){msg('m-usuarios',Conta.traduz(e),'err')}
       mostrarUsuarios(admin);
     });
-    $('t-usuarios').querySelectorAll('[data-reenviar]').forEach(b=>b.onclick=()=>convidar(b.dataset.reenviar,null,null,'reenviar',b));
-  }
-  async function convidar(email,nome,papel,acao,botao){
-    botao.disabled=true;
-    const {data,error}=await sb.functions.invoke('usuarios',{body:{acao,empresa_id:atual.id,email,nome,papel}});
-    botao.disabled=false;
-    if(error){let t=error.message;try{const j=await error.context.json();t=j.erro||t}catch(_){}msg('m-usuarios',t,'err');return false}
-    msg('m-usuarios', acao==='reenviar'?'E-mail reenviado para '+email+'.' : data.email_enviado?'Convite enviado para '+email+'.':email+' já tinha conta e foi adicionado à empresa. A empresa aparece para essa pessoa no próximo acesso.','ok');
-    mostrarUsuarios(true);return true;
+    $('t-usuarios').querySelectorAll('[data-reenviar]').forEach(b=>b.onclick=async()=>{
+      const l=linhas[+b.dataset.reenviar];b.disabled=true;
+      try{await Conta.reenviarConvite(l.email);msg('m-usuarios','E-mail reenviado para '+l.email+'.','ok')}catch(e){msg('m-usuarios',Conta.traduz(e),'err')}
+      b.disabled=false;
+    });
   }
   $('f-convite').onsubmit=async e=>{
-    e.preventDefault();const email=$('i-email').value.trim().toLowerCase();
+    e.preventDefault();const email=$('i-email').value.trim().toLowerCase(),b=$('b-convidar');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg('m-usuarios','Informe um e-mail válido.','err');return}
-    if(await convidar(email,$('i-nome').value.trim()||null,$('i-papel').value,'convidar',$('b-convidar'))){$('i-email').value='';$('i-nome').value='';}
+    b.disabled=true;
+    try{
+      const r=await Conta.convidar(atual.id,{email,nome:$('i-nome').value.trim()||null,papel:$('i-papel').value},atual.nome);
+      msg('m-usuarios',r.emailEnviado?'Convite enviado para '+email+'. A pessoa recebe um e-mail para criar a senha.':email+' já tem conta no Contrapeso. O convite aparece para essa pessoa no próximo acesso.','ok');
+      $('i-email').value='';$('i-nome').value='';
+    }catch(err){msg('m-usuarios',Conta.traduz(err),'err')}
+    b.disabled=false;mostrarUsuarios(true);
   };
   $('f-dados').onsubmit=async e=>{
     e.preventDefault();const nome=$('d-nome').value.trim(),cnpj=$('d-cnpj').value.replace(/\D/g,'')||null;
     if(nome.length<2){msg('m-dados','Informe o nome.','err');return}
     if(cnpj&&cnpj.length!==14){msg('m-dados','O CNPJ precisa ter 14 números.','err');return}
-    const {error}=await sb.from('empresas').update({nome,cnpj}).eq('id',atual.id);
-    if(error){msg('m-dados',Conta.traduz(error),'err');return}
+    try{await Conta.salvarEmpresa(atual.id,{nome,cnpj})}catch(err){msg('m-dados',Conta.traduz(err),'err');return}
     msg('m-dados','Dados salvos.','ok');await carregar();
   };
   $('s-empresa').onchange=e=>{Conta.escolherEmpresa(e.target.value);carregar()};
@@ -162,27 +171,26 @@
     e.preventDefault();const nome=$('n-nome').value.trim(),cnpj=$('n-cnpj').value.replace(/\D/g,'')||null;
     if(nome.length<2){msg('m-nova','Informe o nome da empresa.','err');return}
     if(cnpj&&cnpj.length!==14){msg('m-nova','O CNPJ precisa ter 14 números.','err');return}
-    const {data,error}=await sb.rpc('criar_empresa',{p_nome:nome,p_cnpj:cnpj});
-    if(error){msg('m-nova',Conta.traduz(error),'err');return}
-    Conta.escolherEmpresa(data);$('n-nome').value='';$('n-cnpj').value='';msg('m-nova','Empresa criada.','ok');await carregar();
+    try{await Conta.criarEmpresa(nome,cnpj)}catch(err){msg('m-nova',Conta.traduz(err),'err');return}
+    $('n-nome').value='';$('n-cnpj').value='';msg('m-nova','Empresa criada.','ok');await carregar();
   };
-  let confirmarEmp=null;
-  function mostrarMaster(){
-    const q=$('m-busca').value.trim().toLowerCase();
-    const l=lista.filter(e=>!q||e.nome.toLowerCase().includes(q)||(e.cnpj||'').includes(q.replace(/\D/g,'')||'§'));
-    $('t-master').innerHTML=l.map(e=>`<tr><td><b>${esc(e.nome)}</b></td><td class="muted">${esc(fmtCnpj(e.cnpj))||'—'}</td><td>${e.membros}</td><td><span class="chip ${e.papel==='master'?'a':'n'}">${PAPEL[e.papel]}</span></td><td style="text-align:right;white-space:nowrap"><button class="btn ghost pequeno" type="button" data-acessar="${e.id}">${atual&&atual.id===e.id?'Aberta':'Acessar'}</button> <button class="btn perigo pequeno" type="button" data-excluir="${e.id}">${confirmarEmp===e.id?'Confirmar exclusão':'Excluir'}</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhuma empresa.</td></tr>';
+  async function mostrarMaster(){
+    const q=$('m-busca').value.trim().toLowerCase(), qd=q.replace(/\D/g,'');
+    const l=lista.filter(e=>!q||e.nome.toLowerCase().includes(q)||(qd&&(e.cnpj||'').includes(qd)));
+    $('t-master').innerHTML=l.map(e=>`<tr><td><b>${esc(e.nome)}</b></td><td class="muted">${esc(fmtCnpj(e.cnpj))||'—'}</td><td data-conta="${esc(e.id)}">…</td><td><span class="chip ${e.papel==='master'?'a':'n'}">${PAPEL[e.papel]}</span></td><td style="text-align:right;white-space:nowrap"><button class="btn ghost pequeno" type="button" data-acessar="${esc(e.id)}">${atual&&atual.id===e.id?'Aberta':'Acessar'}</button> <button class="btn perigo pequeno" type="button" data-excluir="${esc(e.id)}">${confirmarEmp===e.id?'Confirmar exclusão':'Excluir'}</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhuma empresa.</td></tr>';
+    $('t-master').querySelectorAll('[data-conta]').forEach(async td=>{const n=await Conta.contarMembros(td.dataset.conta);td.textContent=n==null?'—':n});
     $('t-master').querySelectorAll('[data-acessar]').forEach(b=>b.onclick=()=>{Conta.escolherEmpresa(b.dataset.acessar);carregar();scrollTo({top:0})});
     $('t-master').querySelectorAll('[data-excluir]').forEach(b=>b.onclick=async()=>{
       const id=b.dataset.excluir;
       if(confirmarEmp!==id){confirmarEmp=id;mostrarMaster();setTimeout(()=>{if(confirmarEmp===id){confirmarEmp=null;mostrarMaster()}},5000);return}
-      confirmarEmp=null;
-      const {error}=await sb.from('empresas').delete().eq('id',id);
-      if(error)msg('m-geral',Conta.traduz(error),'err');else msg('m-geral','Empresa excluída com todos os dados e vínculos.','ok');
+      confirmarEmp=null;b.disabled=true;
+      try{await Conta.excluirEmpresa(id);msg('m-geral','Empresa excluída com todos os dados e vínculos.','ok')}catch(err){msg('m-geral',Conta.traduz(err),'err')}
       carregar();
     });
   }
   $('m-busca').oninput=mostrarMaster;
   await carregar();
+  if(new URLSearchParams(location.search).get('nova')==='1') msg('m-geral','Empresa criada. Você é o administrador. Convide a equipe na seção Usuários.','ok');
 })();
 </script>
 </body>

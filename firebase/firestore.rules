@@ -1,0 +1,109 @@
+rules_version = '2';
+// Contrapeso multiempresa.
+// Cada empresa só enxerga os próprios dados; o isolamento é garantido aqui, no servidor.
+// Masters (lista em master()) enxergam e administram todas as empresas.
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function logado() { return request.auth != null; }
+    function email() { return request.auth.token.email.lower(); }
+    function verificado() { return logado() && request.auth.token.email_verified == true; }
+    function master() { return verificado() && email() in ['marquettiric@gmail.com']; }
+
+    function docEmpresa(e) { return /databases/$(db)/documents/empresas/$(e); }
+    function docMembro(e) { return /databases/$(db)/documents/empresas/$(e)/membros/$(request.auth.uid); }
+    function docConvite(e) { return /databases/$(db)/documents/empresas/$(e)/convites/$(email()); }
+
+    function membro(e) { return logado() && exists(docMembro(e)); }
+    function papel(e) { return get(docMembro(e)).data.papel; }
+    function ler(e) { return master() || membro(e); }
+    function editar(e) { return master() || (membro(e) && papel(e) in ['admin', 'editor']); }
+    function admin(e) { return master() || (membro(e) && papel(e) == 'admin'); }
+
+    function papelValido(p) { return p in ['admin', 'editor', 'leitor']; }
+    function textoOpcional(d, k, max) { return !(k in d) || d[k] == null || (d[k] is string && d[k].size() <= max); }
+    function empresaValida(d) {
+      return d.keys().hasOnly(['nome', 'cnpj', 'criadaPor', 'criadaEm'])
+        && d.nome is string && d.nome.size() >= 2 && d.nome.size() <= 120
+        && (!('cnpj' in d) || d.cnpj == null || (d.cnpj is string && d.cnpj.matches('^[0-9]{14}$')));
+    }
+    function membroValido(d, uid) {
+      return d.keys().hasOnly(['uid', 'email', 'nome', 'papel', 'criadoEm', 'ultimoAcesso'])
+        && d.uid == uid && d.email == email() && papelValido(d.papel) && textoOpcional(d, 'nome', 120);
+    }
+
+    match /empresas/{e} {
+      allow get: if ler(e);
+      allow list: if master();
+      // A empresa nasce no mesmo lote em que o criador vira admin dela.
+      allow create: if logado()
+        && empresaValida(request.resource.data)
+        && request.resource.data.criadaPor == request.auth.uid
+        && getAfter(docMembro(e)).data.papel == 'admin';
+      allow update: if admin(e)
+        && empresaValida(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'cnpj']);
+      allow delete: if master();
+
+      match /membros/{uid} {
+        allow get, list: if ler(e);
+        allow create: if logado() && uid == request.auth.uid && membroValido(request.resource.data, uid) && (
+          // fundador, no lote que cria a empresa
+          (!exists(docEmpresa(e))
+            && getAfter(docEmpresa(e)).data.criadaPor == request.auth.uid
+            && request.resource.data.papel == 'admin')
+          ||
+          // convidado com e-mail confirmado, no perfil do convite
+          (verificado() && exists(docConvite(e))
+            && get(docConvite(e)).data.papel == request.resource.data.papel)
+        );
+        allow update: if
+          (admin(e) && uid != request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['papel', 'nome'])
+            && papelValido(request.resource.data.papel))
+          ||
+          (logado() && uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoAcesso', 'nome'])
+            && textoOpcional(request.resource.data, 'nome', 120));
+        // admin não remove a si mesmo: a empresa nunca fica sem admin
+        allow delete: if master()
+          || (admin(e) && uid != request.auth.uid)
+          || (logado() && uid == request.auth.uid && resource.data.papel != 'admin');
+      }
+
+      match /convites/{c} {
+        allow get: if admin(e) || (verificado() && c == email());
+        allow list: if admin(e);
+        allow create, update: if admin(e)
+          && c == request.resource.data.email
+          && c.matches('^[^@/ ]+@[^@/ ]+[.][^@/ ]+$')
+          && request.resource.data.keys().hasOnly(['email', 'nome', 'papel', 'empresaNome', 'criadoPor', 'criadoEm'])
+          && papelValido(request.resource.data.papel)
+          && textoOpcional(request.resource.data, 'nome', 120);
+        allow delete: if admin(e) || (verificado() && c == email());
+      }
+
+      match /dados/{f} {
+        allow get, list: if ler(e);
+        allow create: if editar(e) && f in ['simulador', 'negociador']
+          && request.resource.data.versao == 1;
+        // controle de versão: só grava quem partiu da versão atual
+        allow update: if editar(e) && request.resource.data.versao == resource.data.versao + 1;
+        allow delete: if admin(e);
+        match /partes/{p} {
+          allow read: if ler(e);
+          allow write: if editar(e);
+        }
+      }
+    }
+
+    // "Minhas empresas": cada pessoa encontra os próprios vínculos
+    match /{caminho=**}/membros/{m} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+    }
+    // Convites pendentes para o meu e-mail confirmado
+    match /{caminho=**}/convites/{c} {
+      allow read: if verificado() && resource.data.email == email();
+    }
+  }
+}
