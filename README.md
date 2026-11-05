@@ -36,34 +36,42 @@ Estimativas para apoio à decisão. Não é parecer fiscal. Alíquotas de refer�
 
 O manual em PDF fica em `site/manual/contrapeso-manual.pdf` e é publicado junto com o site. As fontes do manual (texto, modelo e scripts de captura de tela e geração do PDF) estão em `docs/manual/`.
 
-## Multiempresa e login
+## Multiempresa e login (Firebase)
 
-Com o Supabase configurado, cada empresa tem seu próprio espaço:
+Com o Firebase configurado em `site/app/config.js`, cada empresa tem o próprio espaço:
 
 - **Criar empresa:** qualquer pessoa cria a conta da empresa em `entrar/` e vira admin dela.
-- **Usuários:** o admin convida por e-mail em `empresa/`. Perfis: **admin** (gerencia usuários e dados), **editor** (importa, negocia, altera premissas) e **leitor** (consulta; nada é salvo).
-- **Isolamento:** feito no banco com Row Level Security (`supabase/migrations/`). Uma empresa não lê, não grava e não lista usuários de outra, nem chamando a API direto.
-- **Master:** e-mails na tabela `masters` veem e administram todas as empresas.
-- **Dados:** Simulador e Negociador salvam por empresa na tabela `dados`, com controle de versão: se duas pessoas editam ao mesmo tempo, a segunda é avisada em vez de sobrescrever.
+- **Usuários:** o admin convida em `empresa/`. A pessoa recebe um e-mail para criar a senha, que também confirma o e-mail. Perfis: **admin** (gerencia usuários e dados), **editor** (importa, negocia, altera premissas) e **leitor** (consulta; nada é salvo).
+- **Isolamento:** feito no servidor pelas regras do Firestore (`firebase/firestore.rules`). Uma empresa não lê, não grava e não lista usuários de outra, nem acessando o banco direto.
+- **Master:** os e-mails da função `master()` nas regras (e da lista `MASTERS` em `site/app/conta.js`, só para exibição) veem e administram todas as empresas. Exige e-mail confirmado.
+- **Dados:** Simulador e Negociador salvam por empresa, comprimidos e divididos em partes (cabem bases grandes). Há controle de versão: se duas pessoas editam ao mesmo tempo, a segunda é avisada em vez de sobrescrever.
 
-Sem configuração (`site/app/config.js` vazio), as ferramentas funcionam como antes, com dados só no navegador.
+Sem configuração, as ferramentas funcionam como antes, com dados só no navegador.
 
-### Publicação automática do banco
+### Limites do plano gratuito (Spark)
 
-O workflow `.github/workflows/banco.yml` roda a cada mudança em `supabase/`:
+- 150 e-mails de criação/redefinição de senha por dia (usados nos convites e no "esqueci a senha").
+- 1.000 e-mails de confirmação por dia.
+- Firestore: 50 mil leituras e 20 mil gravações por dia, 1 GB armazenado.
 
-1. testa as regras de isolamento (`supabase/tests/rls_test.sql`) num Postgres temporário;
-2. aplica as migrações, publica a função `usuarios` e configura o login (endereços, senha mínima de 8 caracteres e e-mails em português).
+### Testes e publicação automática
+
+O workflow `.github/workflows/firebase.yml` roda a cada mudança:
+
+1. **Regras de isolamento** (`firebase/tests/regras.test.mjs`) no emulador do Firestore.
+2. **Fluxo completo no navegador** (`firebase/tests/e2e.mjs`) com os emuladores de Auth e Firestore: criar empresa, confirmar e-mail, convidar, aceitar convite, perfis, conflito de edição, master, remoção e exclusão.
+3. Na branch `main`, se os secrets existirem: publica regras e índices do Firestore e ativa o login por e-mail e senha com o domínio do site autorizado.
 
 Secrets do repositório (Settings → Secrets and variables → Actions):
 
-| Secret | Obrigatório | O que é |
-|---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | sim | Token pessoal do Supabase (Account → Access Tokens) |
-| `SUPABASE_PROJECT_REF` | sim | Identificador do projeto (o `xxxx` de `https://xxxx.supabase.co`) |
-| `SUPABASE_DB_PASSWORD` | sim | Senha do banco definida na criação do projeto |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SENDER` | recomendado | SMTP próprio. Sem ele, o e-mail padrão do Supabase só entrega para membros da equipe do projeto |
+| Secret | O que é |
+|---|---|
+| `FIREBASE_PROJECT_ID` | ID do projeto no Firebase |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON da conta de serviço (Configurações do projeto → Contas de serviço → Gerar nova chave privada) |
 
-### Testar localmente
+Rodar os testes localmente (precisa de Java 21):
 
-`supabase/tests/stub_auth.sql` simula o mínimo do Supabase para rodar `rls_test.sql` em qualquer Postgres 16.
+```bash
+npm install --no-save firebase-tools@13 @firebase/rules-unit-testing@3 firebase@10 playwright@1.48
+npx firebase emulators:exec --only firestore --project demo-contrapeso "node --test firebase/tests/regras.test.mjs"
+```
